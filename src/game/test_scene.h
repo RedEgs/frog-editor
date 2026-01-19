@@ -8,6 +8,7 @@
 #include "../core/components/lightsource.h"
 #include "../core/objects/lightsourceobject.h"
 #include "../core/objects/modelobject.h"
+#include "../core/objects/primitiveobject.h"
 
 
 class Test_Scene : public Scene {
@@ -15,9 +16,10 @@ public:
     explicit Test_Scene() {
         std::shared_ptr<Model> m(new Model("models/sphere.obj"));
 
-        game_objects.push_back(std::make_unique<ModelObject>(m, glm::vec3(0.0), glm::vec3(1.0)));
+        //game_objects.push_back(std::make_unique<ModelObject>(m, glm::vec3(0.0), glm::vec3(1.0)));
         game_objects.push_back(std::make_unique<LightSourceObject>(DirectionalLightType::MakeSun()));
         game_objects.push_back(std::make_unique<LightSourceObject>(PointLightType::Regular()));
+        game_objects.push_back(std::make_unique<PrimitiveObject>(PLANE, glm::vec3(0.0f), glm::vec3(1.0f)));
     };
 };
 
