@@ -1,0 +1,36 @@
+{
+  "name": "redegs-sdl3",
+  "version": "1.2",
+  "dependencies": [
+    "assimp",
+    "freeglut",
+    {
+      "name": "glad",
+      "features": [
+        "gl-api-33"
+      ]
+    },
+    "glm",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "glut-binding",
+        "opengl3-binding",
+        "sdl3-binding"
+      ]
+    },
+    "imguizmo",
+    "opengl",
+    "sdl3",
+    {
+      "name": "sdl3-image",
+      "features": [
+        "jpeg",
+        "png"
+      ]
+    },
+    "sdl3-ttf",
+    "miniz"
+  ]
+}

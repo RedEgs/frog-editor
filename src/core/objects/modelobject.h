@@ -18,10 +18,18 @@ public:
         this->add_component<ModelRenderer>(model);
     }
 
+    ModelObject() {
+        instance_name = "Model Object";
+        this->add_component<Transform>(glm::vec3(0), glm::vec3(1));
+        this->add_component<ModelRenderer>();
+    }
+
     const char * get_type_name() override {
         return "ModelObject";
     };
 };
+
+REGISTER_GAME_OBJECT(ModelObject);
 
 
 #endif //SDL3_FIRST_MODELOBJECT_H

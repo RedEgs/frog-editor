@@ -56,9 +56,9 @@ public:
             c->on_update(dt);
     }
 
-    void render(Shader *shader) const {
+    void render(Shader *shader, Camera camera) const {
         for (auto& c : components)
-            c->on_render(shader);
+            c->on_render(shader, camera);
     }
 
     std::string get_instance_name() {
@@ -71,6 +71,58 @@ public:
 
 
 };
+
+class GameObjectRegistry {
+    public:
+    using Func = std::function<GameObject*()>;
+
+    static GameObjectRegistry& instance() {
+        static GameObjectRegistry reg;
+        return reg;
+    }
+
+    void registerClass(const std::string& name, Func func) {
+        entries.push_back({name, func});
+    }
+
+    // void callAll() {
+    //     for (auto& e : entries) {
+    //         std::cout << "Calling " << e.name << "\n";
+    //         e.func();
+    //     }
+    // }
+
+    std::vector<std::string> get_names() {
+        std::vector<std::string> names;
+        for (auto& e : entries) {
+            names.push_back(e.name.c_str());
+        }
+        return names;
+    }
+
+    GameObject* get_game_object_constructor(int index) {
+        return entries.at(index).func();
+    }
+
+    private:
+    struct Entry {
+        std::string name;
+        Func func;
+    };
+    std::vector<Entry> entries;
+};
+
+struct AutoRegisterGameObject {
+    AutoRegisterGameObject(const std::string& name, GameObjectRegistry::Func func) {
+        GameObjectRegistry::instance().registerClass(name, func);
+    }
+};
+
+#define REGISTER_GAME_OBJECT(CLASS) \
+namespace { \
+AutoRegisterGameObject _autoReg_##CLASS(#CLASS, []() -> GameObject* { return new CLASS(); }); \
+}
+
 
 
 #endif //SDL3_FIRST_GAMEOBJECT_H

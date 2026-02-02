@@ -15,6 +15,7 @@
 
 class Scene {
 private:
+    std::vector<int> remove_queue;
 public:
     static SDL_Window* window;
 
@@ -37,9 +38,24 @@ public:
     };
     virtual void render(Shader* shader) {
         for (int i = 0; i < game_objects.size(); i++) {
-            game_objects[i].get()->render(shader);
+            Camera c = main_camera;
+            game_objects[i].get()->render(shader, c);
         }
     };
+
+    void remove_game_object(int index) {
+        remove_queue.push_back(index);
+        //
+    }
+
+    void process_remove_queue() {
+        if (remove_queue.size() > 0) {
+            for (int i = 0; i < remove_queue.size(); i++) {
+                game_objects.erase(game_objects.begin() + remove_queue.at(i));
+            }
+        }
+        remove_queue.clear();
+    }
 
 
 };

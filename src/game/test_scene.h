@@ -20,6 +20,7 @@ public:
         game_objects.push_back(std::make_unique<LightSourceObject>(DirectionalLightType::MakeSun()));
         game_objects.push_back(std::make_unique<LightSourceObject>(PointLightType::Regular()));
         game_objects.push_back(std::make_unique<PrimitiveObject>(PLANE, glm::vec3(0.0f), glm::vec3(1.0f)));
+
     };
 };
 

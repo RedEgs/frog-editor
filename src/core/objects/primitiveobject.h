@@ -18,13 +18,19 @@ public:
 
     }
 
+    PrimitiveObject() {
+        instance_name = "Primitive Object";
+        this->add_component<Transform>(glm::vec3(0.0), glm::vec3(1.0));
+        this->add_component<Primitive>(CUBE);
+    };
+
 
     const char * get_type_name() override {
         return "PrimitiveObject";
     };
 };
 
-
+REGISTER_GAME_OBJECT(PrimitiveObject);
 
 
 

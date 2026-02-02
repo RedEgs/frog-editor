@@ -145,7 +145,9 @@ public:
         }
     }
 
-    void on_render(Shader *shader) override {
+    void on_render(Shader *shader, Camera camera) override {
+        if (shader->name != "main") return;
+
         auto* t = owner->get_component<Transform>();
 
         if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {

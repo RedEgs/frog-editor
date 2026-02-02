@@ -15,10 +15,17 @@ public:
         this->add_component<LightSource>(std::move(light_type));
     }
 
+    LightSourceObject() {
+        instance_name = "Light Source Object";
+        this->add_component<LightSource>(DirectionalLightType::MakeSun());
+    };
+
     const char * get_type_name() override {
         return "LightSourceObject";
     };
 };
+
+REGISTER_GAME_OBJECT(LightSourceObject);
 
 
 #endif //SDL3_FIRST_LIGHTSOURCEOBJECT_H

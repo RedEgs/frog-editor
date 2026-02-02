@@ -187,12 +187,11 @@ Mesh inline CreatePlane(float size = 1.0f, int subdivisions = 1) {
     return m;
 }
 
-
-
 class Primitive : public Component {
 private:
     PrimitiveType primitive_type;
     Mesh mesh;
+
 public:
     Primitive(PrimitiveType primitive) {
         primitive_type = primitive;
@@ -202,6 +201,46 @@ public:
     Primitive() {
         primitive_type = CUBE;
         mesh = CreateCube();
+    }
+
+    static void SDLCALL file_callback(std::string *string, const char* const* filelist, int filter) {
+        if (!filelist) {
+            SDL_Log("An error occured: %s", SDL_GetError());
+            return;
+        } else if (!*filelist) {
+            SDL_Log("The user did not select any file.");
+            SDL_Log("Most likely, the dialog was canceled.");
+            return;
+        }
+
+        while (*filelist) {
+            SDL_Log("Full path to selected file: '%s'", *filelist);
+            std::cout << " File chosen|!";
+            string->append(*filelist);
+            return;
+        }
+
+        if (filter < 0) {
+            SDL_Log("The current platform does not support fetching "
+                "the selected filter, or the user did not select"
+                " any filter.");
+            return;
+        }
+
+
+    };
+
+    std::string choose_file_from_dialog() {
+        std::string path = "";
+        SDL_DialogFileFilter filter {
+            .name = "PNG Files",
+            .pattern = "png",
+        };
+        SDL_ShowOpenFileDialog(SDL_DialogFileCallback(file_callback), &path, NULL, &filter, 1, NULL, false);
+        while (path == "") {
+            //std::cout << "CHOOSING!!" << std::endl;
+        }
+        return path;
     }
 
     void construct_mesh_from_type() {
@@ -236,15 +275,52 @@ public:
             primitive_type = static_cast<PrimitiveType>(current_type);
             construct_mesh_from_type();
         }
+
+
+        ImGui::SeparatorText("Material");
+        if (ImGui::Button("Upload Diffuse Texture")) {
+            std::string filename = choose_file_from_dialog();
+            Texture t(filename.c_str(), "diffuse");
+            mesh.textures.push_back(t);
+        }
+
+        if (ImGui::Button("Upload Specular Texture")) {
+            std::string filename = choose_file_from_dialog();
+            Texture t(filename.c_str(), "specular");
+            mesh.textures.push_back(t);
+        }
+
+        if (ImGui::Button("Clear Textures")) {
+            mesh.textures.clear();
+        }
+
+        // if (ImGui::BeginListBox("Textures")) {
+        //     for (int i = 0; i < mesh.textures.size(); i++) {
+        //         ImGui::SetNextItemAllowOverlap();
+        //         ImGui::Text(mesh.textures.at(i).path.c_str());
+        //         ImGui::SameLine();
+        //         ImGui::Button("-");
+        //
+        //     }
+        //
+        //     ImGui::EndListBox();
+        // }
+
+
+
     }
 
-    void on_render(Shader *shader) override {
+    void on_render(Shader *shader, Camera camera) override {
+        if (shader->name != "main") return;
+
         auto* t = owner->get_component<Transform>();
         if (t == nullptr) {
             shader->setMat4("model", glm::mat4(1.0));
         } else {
             shader->setMat4("model", t->get_matrix());
         }
+
+        //shader->setVec3("material.ambient", material_ambient);
 
         mesh.draw(*shader);
     }
@@ -261,6 +337,8 @@ public:
     const char* get_class_name() override {return "PrimitiveComponent";}
 
 };
+
+
 REGISTER_COMPONENT(Primitive);
 
 #endif //SDL3_FIRST_PRIMITIVE_H

@@ -14,7 +14,7 @@ public:
     SceneManager(): current_scene_index(0) {};
 
     void events(SDL_Event *event) const {
-        if (scenes.size() > 0) {
+        if (!scenes.empty()) {
             scenes[current_scene_index]->events(event);
         } else {
             std::cerr << "No scenes in the scene manager" << std::endl;
@@ -22,7 +22,7 @@ public:
     };
 
     void update(float delta_time) const {
-        if (scenes.size() > 0) {
+        if (!scenes.empty()) {
             scenes[current_scene_index]->update(delta_time);
         } else {
             std::cerr << "No scenes in the scene manager" << std::endl;
@@ -30,7 +30,7 @@ public:
     };
 
     void imgui() const {
-        if (scenes.size() > 0) {
+        if (!scenes.empty()) {
             scenes[current_scene_index]->imgui();
         } else {
             std::cerr << "No scenes in the scene manager" << std::endl;
@@ -38,7 +38,7 @@ public:
     };
 
     void render(Shader* shader) const {
-        if (scenes.size() > 0) {
+        if (!scenes.empty()) {
             scenes[current_scene_index]->render(shader);
         } else {
             std::cerr << "No scenes in the scene manager" << std::endl;
@@ -56,7 +56,7 @@ public:
     };
 
     Camera* get_camera() const {
-        if (scenes.size() > 0) {
+        if (!scenes.empty()) {
             return &scenes[current_scene_index]->main_camera;
         }
         std::cerr << "No scenes in the scene manager" << std::endl;
@@ -64,18 +64,33 @@ public:
     };
 
     std::vector<std::unique_ptr<GameObject>> *get_game_objects() const  {
-        if (scenes.size() > 0) {
+        if (!scenes.empty()) {
             return &scenes[current_scene_index]->game_objects;
         }
         std::cerr << "No scenes in the scene manager" << std::endl;
     };
 
     Scene *get_current_scene() const {
-        if (scenes.size() > 0) {
+        if (!scenes.empty()) {
             return scenes[current_scene_index].get();
         }
         std::cerr << "No scenes in the scene manager" << std::endl;
     };
+
+    void remove_game_object(int index) {
+        if (scenes.empty()) return;
+
+        Scene * s = scenes[current_scene_index].get();
+
+        if (index > s->game_objects.size()) return;
+        s->remove_game_object(index);
+    }
+
+    void process_remove_queue() {
+        if (scenes.empty()) return;
+        Scene * s = scenes[current_scene_index].get();
+        s->process_remove_queue();
+    }
 
 private:
     unsigned int current_scene_index;

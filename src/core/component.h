@@ -18,7 +18,7 @@ public:
 
     virtual void on_start() {}
     virtual void on_update(float dt) {}
-    virtual void on_render(Shader *shader) {}
+    virtual void on_render(Shader *shader, Camera camera) {}
     virtual void properties_editor_imgui(Scene *scene) {} // Put ImGui code which is used in the property editor to modify components
     virtual const char* get_class_name() {return "Component";}
 };
