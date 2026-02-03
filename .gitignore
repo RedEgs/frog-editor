@@ -1,2 +1,12 @@
-build
 .idea
+build/.cmake
+build/CMakeFiles
+build/Testing
+build/vcpkg_installed
+build/.gitignore
+build/.ninja_deps
+build/.ninja_log
+build/build.ninja
+build/cmake_install.cmake
+build/CMakeCache.txt
+build/vcpkg-manifest-install.log
