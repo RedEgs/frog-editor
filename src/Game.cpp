@@ -22,12 +22,14 @@
 #include "graphics/model.h"
 #include "imgui_stdlib.h"
 #include "core/components/sky.h"
+#include "core/components/billboard.h"
 #include "graphics/cubemap.h"
+#include "graphics/quad.h"
 
 #include "graphics/shader.h"
 #include "graphics/texture.h"
 
-
+#define RESOURCES(path) "../resources/shaders/" path
 
 
 Game::Game(int argc, char ** argv) : m_window(nullptr, &SDL_DestroyWindow), gl_context(nullptr) {
@@ -36,28 +38,32 @@ Game::Game(int argc, char ** argv) : m_window(nullptr, &SDL_DestroyWindow), gl_c
 SDL_AppResult Game::Init() {
     setup_window();
 
-
     scene_manager = SceneManager();
 
-    Shader *shader_prog = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl", "main");
-    Shader *cubemap_shader = new Shader("shaders/cubemapvert.glsl", "shaders/cubemapfrag.glsl", "skybox");
+    Shader *shader_prog = new Shader(RESOURCES("main/vertex.glsl"), RESOURCES("main/fragment.glsl"), "main");
+    Shader *cubemap_shader = new Shader(RESOURCES("cubemap/cubemapvert.glsl"), RESOURCES("cubemap/cubemapfrag.glsl"), "skybox");
+    Shader *billboard_shader = new Shader(RESOURCES("billboard/bvertex.glsl"), RESOURCES("billboard/bfragment.glsl"), "billboard");
+    // Shader *lightpass_shader = new Shader(RESOURCES("lightpass/vertex.glsl"), RESOURCES("lightpass/fragment.glsl"), "lightpass");
+    // Shader *geometrypass_shader = new Shader(RESOURCES("gpass/vertex.glsl"), RESOURCES("gpass/fragment.glsl"), "gpass");
+
+    ubo = std::make_unique<UniformBufferObject>(160, 0);
+    fbo = std::make_unique<Framebuffer>(1280, 720);
 
     shaders.emplace_back(shader_prog);
     shaders.emplace_back(cubemap_shader);
+    shaders.emplace_back(billboard_shader);
+    // shaders.emplace_back(lightpass_shader);
+    // shaders.emplace_back(geometrypass_shader);
 
     int scene = scene_manager.add_scene(std::make_unique<Test_Scene>());
     scene_manager.set_scene(scene);
 
-    // cubemap_ = std::make_unique<Cubemap>(
-    //     "skybox/right.jpg",
-    //     "skybox/left.jpg",
-    //     "skybox/top.jpg",
-    //     "skybox/bottom.jpg",
-    //     "skybox/front.jpg",
-    //     "skybox/back.jpg"
-    // );
-
-
+    //
+    // geometrypass_shader->use();
+    // geometrypass_shader->setInt("gPosition", 0);
+    // geometrypass_shader->setInt("gNormal", 1);
+    // geometrypass_shader->setInt("gAlbedoSpec", 2);
+    //
 
     return SDL_APP_CONTINUE;
 }
@@ -73,6 +79,7 @@ SDL_AppResult Game::setup_window()   {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
     m_window.reset(SDL_CreateWindow("Example SDL3 OpenGL", width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE));
     if (!m_window) {
@@ -113,6 +120,9 @@ SDL_AppResult Game::setup_window()   {
     ImGui_ImplOpenGL3_Init("#version 330");
 
     glViewport(0, 0, width, height);
+
+
+
 
     return SDL_APP_CONTINUE;
 }
@@ -166,20 +176,37 @@ void Game::render_scene() {
 
     Shader *shader_program = shaders.at(0);
     Shader *cubemap_shader = shaders.at(1);
+    Shader *billboard_shader = shaders.at(2);
+    // Shader *lightpass_shader = shaders.at(2);
+    // Shader *geometrypass_shader = shaders.at(3);
 
-    //cubemap_->draw(glm::mat4(glm::mat3(scene_manager.get_camera()->view_matrix)), scene_manager.get_camera()->project_matrix, cubemap_shader);
+    UniformBufferObject *uniform = ubo.get();
+
+    uniform->set_object(0, timestamp); // set time
+    uniform->set_object(16, scene_manager.get_camera()->camera_position);
+    uniform->set_object(32, scene_manager.get_camera()->view_matrix);
+    uniform->set_object(96, scene_manager.get_camera()->project_matrix);
+    //
     cubemap_shader->use();
     scene_manager.render(cubemap_shader);
 
     shader_program->use();
-
-    shader_program->setFloat("time", timestamp);
-    shader_program->setMat4("view", scene_manager.get_camera()->view_matrix);
-    shader_program->setMat4("proj", scene_manager.get_camera()->project_matrix);
-    shader_program->setVec3("view_position", scene_manager.get_camera()->camera_position);
     shader_program->setFloat("material.shininess", 10.0f);
-
     scene_manager.render(shader_program);
+
+    // shader_program->setMat4("view", scene_manager.get_camera()->view_matrix);
+    // shader_program->setMat4("proj", scene_manager.get_camera()->project_matrix);
+    // shader_program->setVec3("view_position", scene_manager.get_camera()->camera_position);
+
+    billboard_shader->use();
+    scene_manager.render(billboard_shader);
+
+
+
+
+
+    // lightpass_shader->dir_light_count = 0;
+    // lightpass_shader->point_light_count = 0;
     shader_program->dir_light_count = 0;
     shader_program->point_light_count = 0;
 
@@ -192,9 +219,13 @@ void Game::render_scene() {
 SDL_AppResult Game::OnRender() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_BLEND);
 
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
+    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     render_scene();
     // ---------- IMGUI ----------

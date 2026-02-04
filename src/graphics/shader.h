@@ -17,6 +17,7 @@ class Shader {
 public:
     std::string name;
     unsigned int ID;
+    unsigned int UBB; // Uniform Block Binding;
 
     int point_light_count = 0;
     int dir_light_count = 0;
@@ -46,7 +47,7 @@ public:
         glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
         if (!success) {
             glGetShaderInfoLog(vertex_shader, 512, NULL, infoLog);
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Vertex shader failed to compile: %s", infoLog);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Vertex shader failed to compile | %s: %s", vertex_path, infoLog);
         }
 
         unsigned int frag_shader;
@@ -57,7 +58,7 @@ public:
         glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
         if (!success) {
             glGetShaderInfoLog(frag_shader, 512, NULL, infoLog);
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Fragment shader failed to compile: %s", infoLog);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Fragment shader failed to compile | %s: %s", fragment_path, infoLog);
         }
 
         unsigned int shader_program;
@@ -65,6 +66,10 @@ public:
         glAttachShader(shader_program, vertex_shader);
         glAttachShader(shader_program, frag_shader);
         glLinkProgram(shader_program);
+
+        unsigned int globals_index_ubb = glGetUniformBlockIndex(ID, "Globals");
+        glUniformBlockBinding(ID, globals_index_ubb, 0);
+
 
         glDeleteShader(vertex_shader);
         glDeleteShader(frag_shader);

@@ -10,6 +10,7 @@
 #include "transform.h"
 #include "../component.h"
 #include "../../graphics/shader.h"
+#include "../../graphics/billboard.h"
 
 struct LightType {
     virtual ~LightType() = default;
@@ -33,19 +34,17 @@ struct DirectionalLightType : LightType {
 };
 
 struct PointLightType : LightType {
-    float constant{};
-    float linear{};
-    float quadratic{};
+    float intensity;
     glm::vec3 position{};
     glm::vec3 ambient{};
     glm::vec3 diffuse{};
     glm::vec3 specular{};
 
-    PointLightType(float constant, float linear, float quadratic, glm::vec3 position, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular):
-        constant(constant), linear(linear), quadratic(quadratic), position(position), ambient(ambient), diffuse(diffuse), specular(specular) {}
+    PointLightType(float intensity, glm::vec3 position, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular):
+        intensity(intensity), position(position), ambient(ambient), diffuse(diffuse), specular(specular) {}
     static std::unique_ptr<LightType> Regular() {
         return std::make_unique<PointLightType>(
-            1.0, 0.35, 0.44,
+            1.0,
             glm::vec3(0, 0, 0),
             glm::vec3(1.0f),
             glm::vec3(0.4f),
@@ -55,6 +54,10 @@ struct PointLightType : LightType {
 };
 
 class LightSource : public Component {
+private:
+    Texture icon_tex = Texture("../resources/icons/light-source.png", "diffuse");
+    Billboard icon = Billboard(icon_tex);
+    bool render_icon = true;
 public:
     std::unique_ptr<LightType> light_type;
 
@@ -65,12 +68,12 @@ public:
 
     void properties_editor_imgui(Scene* scene) override {
         auto* t = owner->get_component<Transform>();
+
+        ImGui::Checkbox("Render Icon", &render_icon);
+
         if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
             // point light UI
-            ImGui::InputFloat("Constant", &p->constant);
-            ImGui::InputFloat("Linear", &p->linear);
-            ImGui::InputFloat("Quadratic", &p->quadratic);
-
+            ImGui::SliderFloat("Intensity", &p->intensity, 0, 5);
             if (t == NULL) {
                 static bool shouldRenderGizmo = true;
                 ImGui::Checkbox("Render Gizmo", &shouldRenderGizmo);
@@ -146,10 +149,28 @@ public:
     }
 
     void on_render(Shader *shader, Camera camera) override {
-        if (shader->name != "main") return;
-
         auto* t = owner->get_component<Transform>();
 
+        if (render_icon) {
+            if (shader->name == "billboard") {
+                glDisable(GL_CULL_FACE);
+                glm::vec3 position;
+                if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
+                    position = p->position;
+                }
+                else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
+                    position = d->direction;
+                }
+                icon.size = .5f;
+                icon.position = position;
+                icon.draw(shader);
+
+                glEnable(GL_CULL_FACE);
+            }
+        }
+
+        if (shader->name != "main") return;
+        std::cout << "rendering light!!" << std::endl;
         if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
             // point light UI
             if (t != NULL) {
@@ -159,9 +180,7 @@ public:
             int i = shader->point_light_count++;
             std::string base = "point_lights[" + std::to_string(i) + "]";
 
-            shader->setFloat(base + ".constant", p->constant);
-            shader->setFloat(base + ".linear", p->linear);
-            shader->setFloat(base + ".quadratic", p->quadratic);
+            shader->setFloat(base + ".intensity", p->intensity);
 
             shader->setVec3(base + ".position", p->position);
             shader->setVec3(base + ".ambient", p->ambient);
@@ -170,25 +189,25 @@ public:
 
             shader->setBool(base + ".enabled", true);
         }
-        else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
-            if (t != NULL) {
-                glm::mat4 m = inverse(t->get_matrix());
-                glm::vec3 dir = glm::vec3(m[3]);
-
-                d->direction = dir;
-            }
-
-            // directional light UI
-            int i = shader->dir_light_count++;
-            std::string base = "directional_lights[" + std::to_string(i) + "]";
-
-            shader->setVec3(base + ".direction", d->direction);
-            shader->setVec3(base + ".ambient", d->ambient);
-            shader->setVec3(base + ".diffuse", d->diffuse);
-            shader->setVec3(base + ".specular", d->specular);
-
-            shader->setBool(base + ".enabled", true);
-        }
+        // else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
+        //     if (t != NULL) {
+        //         glm::mat4 m = inverse(t->get_matrix());
+        //         glm::vec3 dir = glm::vec3(m[3]);
+        //
+        //         d->direction = dir;
+        //     }
+        //
+        //     // directional light UI
+        //     int i = shader->dir_light_count++;
+        //     std::string base = "directional_lights[" + std::to_string(i) + "]";
+        //
+        //     shader->setVec3(base + ".direction", d->direction);
+        //     shader->setVec3(base + ".ambient", d->ambient);
+        //     shader->setVec3(base + ".diffuse", d->diffuse);
+        //     shader->setVec3(base + ".specular", d->specular);
+        //
+        //     shader->setBool(base + ".enabled", true);
+        // }
     }
 
     static const char* get_static_class_name() { return "Light Source"; };

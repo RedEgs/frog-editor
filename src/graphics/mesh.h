@@ -33,14 +33,14 @@ public:
         for (unsigned int i = 0; i < textures.size(); i++) {
             if (textures[i].ID == 0) continue; // skip invalid textures
 
-            textures[i].use(i);
-
             std::string number;
             if (textures[i].type == "diffuse") number = std::to_string(diffuse_count++);
             else if (textures[i].type == "specular") number = std::to_string(specular_count++);
 
             shader.setInt(("material." + textures[i].type + number).c_str(), i);
-            glBindTexture(GL_TEXTURE_2D, textures[i].ID);
+            textures[i].use();
+
+            //glBindTexture(GL_TEXTURE_2D, textures[i].ID);
         }
 
         glActiveTexture(GL_TEXTURE0);

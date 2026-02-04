@@ -7,9 +7,11 @@
 #include "core/scene.h"
 #include "core/scenemanager.h"
 #include "graphics/cubemap.h"
+#include "graphics/framebuffer.h"
 #include "graphics/model.h"
 #include "graphics/shader.h"
 #include "graphics/texture.h"
+#include "graphics/uniform_buffer_object.h"
 
 
 class Game {
@@ -28,7 +30,8 @@ private:
 
     std::vector<Shader*> shaders;
     std::unique_ptr<Cubemap> cubemap_;
-    unsigned int cVAO, cVBO;
+    std::unique_ptr<UniformBufferObject> ubo;
+    std::unique_ptr<Framebuffer> fbo;
 
     float delta_time = 0.0f;
     float fps = 0.0f;

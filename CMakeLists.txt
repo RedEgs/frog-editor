@@ -32,6 +32,12 @@ add_executable(sdl3_first src/main.cpp
         src/graphics/cubemap.h
         src/core/components/sky.h
         src/utility/files.h
+        src/core/components/billboard.h
+        src/core/components/billboard.h
+        src/graphics/uniform_buffer_object.h
+        src/graphics/billboard.h
+        src/graphics/framebuffer.h
+        src/graphics/quad.h
 )
 
 find_package(SDL3 CONFIG REQUIRED)

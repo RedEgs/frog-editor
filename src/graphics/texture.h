@@ -37,22 +37,35 @@ public:
         }
 
         initialise_GL_texture();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, converted_texure->w, converted_texure->h, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                 converted_texure->pixels);
+        if (type_name == "diffuse") {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, converted_texure->w, converted_texure->h, 0, GL_RGBA, GL_UNSIGNED_BYTE,converted_texure->pixels);
+        } else {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, converted_texure->w, converted_texure->h, 0, GL_RGBA, GL_UNSIGNED_BYTE,converted_texure->pixels);
+        }
+
         glGenerateMipmap(GL_TEXTURE_2D);
 
         SDL_free(texture_surface);
         SDL_free(converted_texure);
     }
 
-    void use(int texture) const {
-        // Sets as active uniform texture if its been passed in, otherwise it just binds the current texture
-        // if (texture != 0) {
-        //     bool allowed = std::find(_TEXTUREMACROS.begin(), _TEXTUREMACROS.end(), texture) != _TEXTUREMACROS.end();
-        //     if (allowed) {
-        //         glActiveTexture(texture);
-        //     }
-        // }
+    Texture() {
+        glGenTextures(1, &ID);
+        glBindTexture(GL_TEXTURE_2D, ID);
+
+        unsigned char whitePixel[] = {100, 100, 100, 255};
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePixel);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    }
+
+
+    void use() const {
         glBindTexture(GL_TEXTURE_2D, ID);
     }
 private:
@@ -64,8 +77,8 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
     }
+
 
 
 };

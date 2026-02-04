@@ -12,32 +12,34 @@
 
 class Cubemap {
 private:
-    const char *frag_shader =
-        "#version 330 core"
-        "layout (location = 0) in vec3 aPos;"
-
-        "out vec3 TexCoords;"
-
-        "uniform mat4 projection;"
-        "uniform mat4 view;"
-
-        "void main()"
-        "{"
-        "    TexCoords = aPos;"
-        "    gl_Position = projection * view * vec4(aPos, 1.0);"
-        "}";
-
-    const char *vert_shader =
-        "#version 330 core"
-        "out vec4 FragColor;"
-        "in vec3 TexCoords;"
-        "uniform samplerCube skybox;"
-        "void main()"
-        "{"
-        "   FragColor = texture(skybox, TexCoords);"
-        "}";
 
 public:
+    const char *frag_shader =
+    "#version 330 core"
+    "layout (location = 0) in vec3 aPos;"
+
+    "out vec3 TexCoords;"
+
+    "uniform mat4 projection;"
+    "uniform mat4 view;"
+
+    "void main()"
+    "{"
+    "    TexCoords = aPos;"
+    "    gl_Position = projection * view * vec4(aPos, 1.0);"
+    "}";
+
+    const char *vert_shader =
+    "#version 330 core"
+    "out vec4 FragColor;"
+    "in vec3 TexCoords;"
+    "uniform samplerCube skybox;"
+    "void main()"
+    "{"
+    "   FragColor = texture(skybox, TexCoords);"
+    "}";
+
+
     unsigned int textureID = 0;
     unsigned int VAO = 0;
     unsigned int VBO = 0;
@@ -70,13 +72,12 @@ public:
         glDeleteTextures(1, &textureID);
     }
 
-    void draw(const glm::mat4& view, const glm::mat4& proj, Shader* shader) {
+    void draw(const glm::mat4& view, Shader* shader) {
         glDepthFunc(GL_LEQUAL);
         glDepthMask(GL_FALSE);
 
         shader->use();
-        shader->setMat4("view", glm::mat4(glm::mat3(view)));
-        shader->setMat4("projection", proj);
+        shader->setMat4("cview", glm::mat4(glm::mat3(view)));
         shader->setInt("skybox", 0);
 
         glActiveTexture(GL_TEXTURE0);

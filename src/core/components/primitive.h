@@ -11,6 +11,7 @@
 #include "transform.h"
 #include "../component.h"
 #include "../../graphics/mesh.h"
+#include "../utility/files.h"
 
 
 struct Vertex;
@@ -84,6 +85,7 @@ Mesh inline CreateCube(float size = 1.0f) {
        20,21,22, 22,23,20         // bottom
     };
 
+    texture.emplace_back(Texture());
     Mesh m(vertices, indices, texture);
     return m;
 }
@@ -134,6 +136,7 @@ Mesh inline CreateSphere(float radius = 0.5f, int rings = 16, int sectors = 32) 
         }
     }
 
+    texture.emplace_back(Texture());
     Mesh m(vertices, indices, texture);
     return m;
 }
@@ -183,6 +186,7 @@ Mesh inline CreatePlane(float size = 1.0f, int subdivisions = 1) {
         }
     }
 
+    texture.emplace_back(Texture());
     Mesh m(vertices, indices, texture);
     return m;
 }
@@ -191,6 +195,11 @@ class Primitive : public Component {
 private:
     PrimitiveType primitive_type;
     Mesh mesh;
+
+    SDL_DialogFileFilter default_fdfilter {
+        .name = "Image Files",
+        .pattern = "png;jpg;jpeg",
+    };
 
 public:
     Primitive(PrimitiveType primitive) {
@@ -201,46 +210,6 @@ public:
     Primitive() {
         primitive_type = CUBE;
         mesh = CreateCube();
-    }
-
-    static void SDLCALL file_callback(std::string *string, const char* const* filelist, int filter) {
-        if (!filelist) {
-            SDL_Log("An error occured: %s", SDL_GetError());
-            return;
-        } else if (!*filelist) {
-            SDL_Log("The user did not select any file.");
-            SDL_Log("Most likely, the dialog was canceled.");
-            return;
-        }
-
-        while (*filelist) {
-            SDL_Log("Full path to selected file: '%s'", *filelist);
-            std::cout << " File chosen|!";
-            string->append(*filelist);
-            return;
-        }
-
-        if (filter < 0) {
-            SDL_Log("The current platform does not support fetching "
-                "the selected filter, or the user did not select"
-                " any filter.");
-            return;
-        }
-
-
-    };
-
-    std::string choose_file_from_dialog() {
-        std::string path = "";
-        SDL_DialogFileFilter filter {
-            .name = "PNG Files",
-            .pattern = "png",
-        };
-        SDL_ShowOpenFileDialog(SDL_DialogFileCallback(file_callback), &path, NULL, &filter, 1, NULL, false);
-        while (path == "") {
-            //std::cout << "CHOOSING!!" << std::endl;
-        }
-        return path;
     }
 
     void construct_mesh_from_type() {
@@ -279,13 +248,13 @@ public:
 
         ImGui::SeparatorText("Material");
         if (ImGui::Button("Upload Diffuse Texture")) {
-            std::string filename = choose_file_from_dialog();
+            std::string filename = Files::open_file_dialogue_blocking(default_fdfilter);
             Texture t(filename.c_str(), "diffuse");
             mesh.textures.push_back(t);
         }
 
         if (ImGui::Button("Upload Specular Texture")) {
-            std::string filename = choose_file_from_dialog();
+            std::string filename = Files::open_file_dialogue_blocking(default_fdfilter);
             Texture t(filename.c_str(), "specular");
             mesh.textures.push_back(t);
         }
@@ -319,7 +288,7 @@ public:
         } else {
             shader->setMat4("model", t->get_matrix());
         }
-
+        std::cout << "rendering mesh!" << std::endl;
         //shader->setVec3("material.ambient", material_ambient);
 
         mesh.draw(*shader);

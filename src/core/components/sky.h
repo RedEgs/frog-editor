@@ -14,12 +14,14 @@
 struct File;
 
 class Sky: public Component {
+private:
     SDL_DialogFileFilter default_fdfilter {
         .name = "Zip Files",
         .pattern = "zip",
     };
 
     std::unique_ptr<Cubemap> cubemap;
+
 public:
     Sky() {
         std::string filename = Files::open_file_dialogue_blocking(default_fdfilter);
@@ -44,6 +46,7 @@ public:
         }
 
         cubemap = std::make_unique<Cubemap>(rdata);
+
     };
 
     void properties_editor_imgui(Scene *scene) override {
@@ -52,7 +55,7 @@ public:
 
     void on_render(Shader *shader, Camera camera) override {
         if (shader->name == "skybox") {
-            cubemap->draw(camera.view_matrix, camera.project_matrix, shader);
+            cubemap->draw(camera.view_matrix, shader);
         }
     }
 

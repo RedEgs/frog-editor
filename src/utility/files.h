@@ -52,9 +52,12 @@ public:
 
         std::string path;
         SDL_ShowOpenFileDialog(SDL_DialogFileCallback(Files::file_callback), &path, NULL, &filter, 1, NULL, false);
+        std::cout << "STARTING..." << std::endl;
         while (path.empty()) {
+            std::cout << "WAITING..." << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
+        std::cout << "FINISHED..." << std::endl;
         return path;
     }
 

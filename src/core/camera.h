@@ -119,6 +119,13 @@ public:
     bool get_handle_input() const {
         return this->handle_input;
     };
+
+    glm::vec3 get_right_vector() {
+        return glm::vec3(view_matrix[0][0], view_matrix[1][0], view_matrix[2][0]);
+    }
+    glm::vec3 get_up_vector() {
+        return glm::vec3(view_matrix[0][1], view_matrix[1][1], view_matrix[2][1]);
+    }
 };
 
 
