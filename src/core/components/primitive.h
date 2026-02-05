@@ -288,7 +288,6 @@ public:
         } else {
             shader->setMat4("model", t->get_matrix());
         }
-        std::cout << "rendering mesh!" << std::endl;
         //shader->setVec3("material.ambient", material_ambient);
 
         mesh.draw(*shader);

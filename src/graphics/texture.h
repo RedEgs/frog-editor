@@ -4,13 +4,14 @@
 
 #ifndef SDL3_FIRST_TEXTURE_H
 #define SDL3_FIRST_TEXTURE_H
+#include <any>
 #include <cstddef>
 #include <iostream>
 #include <string>
 #include <glad/glad.h>
 #include <SDL3/SDL_surface.h>
 #include <SDL3_image/SDL_image.h>
-
+#include "../utility/debug.h"
 
 class Texture {
 public:
@@ -49,7 +50,28 @@ public:
         SDL_free(converted_texure);
     }
 
+    Texture(int width, int height, void * data = NULL) {
+        this->type = "diffuse";
+
+        glGenTextures(1, &ID);
+        glBindTexture(GL_TEXTURE_2D, ID);
+
+        if (data == NULL) glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        else { glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data); }
+
+        if (Debug::glCheckError_(__FILE__, __LINE__) != GL_NO_ERROR) {
+            std::cerr << "Texture creation encountered an error. Likely invalid data was passed." << std::endl;
+        }
+
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+
+
     Texture() {
+        this->type = "diffuse";
+
         glGenTextures(1, &ID);
         glBindTexture(GL_TEXTURE_2D, ID);
 

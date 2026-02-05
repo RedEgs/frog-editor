@@ -5,12 +5,11 @@
 #include "Game.h"
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
-    std::cout << "before init";
+    std::cout << "Pre-initialisation" << std::endl;
     const auto game = new Game{argc, argv};
     *appstate = game;
 
-    std::cout << "0";
-
+    std::cout << "Initialising Game" << std::endl;
     return game->Init();
 
 }

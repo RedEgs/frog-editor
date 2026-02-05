@@ -22,59 +22,69 @@ public:
     int point_light_count = 0;
     int dir_light_count = 0;
 
-    Shader(const char *vertex_path, const char *fragment_path, const char* name) {
+    Shader(const char* vertex_path, const char* fragment_path, const char* name) {
         this->name = name;
 
-        size_t vsize;
-        char* vertex_shader_source = static_cast<char*>(SDL_LoadFile(vertex_path, &vsize));
-        if (!vertex_shader_source) SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load %s", vertex_path);
-
-        size_t fsize;
-        char* frag_shader_source = static_cast<char*>(SDL_LoadFile(fragment_path, &fsize));
-        if (!frag_shader_source) SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load %s", fragment_path);
-
-        unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex_shader, 1, (const char**)&vertex_shader_source, NULL);
-        glCompileShader(vertex_shader);
-
-        int success;
-        char infoLog[512];
-
-        vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
-        glCompileShader(vertex_shader);
-
-        glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(vertex_shader, 512, NULL, infoLog);
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Vertex shader failed to compile | %s: %s", vertex_path, infoLog);
+        size_t vsize = 0;
+        char* vsrc = (char*)SDL_LoadFile(vertex_path, &vsize);
+        if (!vsrc) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load %s", vertex_path);
+            return;
         }
 
-        unsigned int frag_shader;
-        frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(frag_shader, 1, &frag_shader_source, NULL);
-        glCompileShader(frag_shader);
-
-        glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(frag_shader, 512, NULL, infoLog);
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Fragment shader failed to compile | %s: %s", fragment_path, infoLog);
+        size_t fsize = 0;
+        char* fsrc = (char*)SDL_LoadFile(fragment_path, &fsize);
+        if (!fsrc) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load %s", fragment_path);
+            SDL_free(vsrc);
+            return;
         }
 
-        unsigned int shader_program;
-        shader_program = glCreateProgram();
-        glAttachShader(shader_program, vertex_shader);
-        glAttachShader(shader_program, frag_shader);
-        glLinkProgram(shader_program);
+        GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vs, 1, &vsrc, (GLint*)&vsize);
+        glCompileShader(vs);
 
-        unsigned int globals_index_ubb = glGetUniformBlockIndex(ID, "Globals");
-        glUniformBlockBinding(ID, globals_index_ubb, 0);
+        GLint success;
+        glGetShaderiv(vs, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            char log[512];
+            glGetShaderInfoLog(vs, 512, nullptr, log);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Vertex compile error: %s", log);
+        }
 
+        GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fs, 1, &fsrc, (GLint*)&fsize);
+        glCompileShader(fs);
 
-        glDeleteShader(vertex_shader);
-        glDeleteShader(frag_shader);
+        glGetShaderiv(fs, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            char log[512];
+            glGetShaderInfoLog(fs, 512, nullptr, log);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Fragment compile error: %s", log);
+        }
 
-        ID = shader_program;
+        ID = glCreateProgram();
+        glAttachShader(ID, vs);
+        glAttachShader(ID, fs);
+        glLinkProgram(ID);
+
+        glGetProgramiv(ID, GL_LINK_STATUS, &success);
+        if (!success) {
+            char log[512];
+            glGetProgramInfoLog(ID, 512, nullptr, log);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Program link error: %s", log);
+        }
+
+        GLuint globalsIndex = glGetUniformBlockIndex(ID, "Globals");
+        if (globalsIndex != GL_INVALID_INDEX) {
+            glUniformBlockBinding(ID, globalsIndex, 0);
+        }
+
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+
+        SDL_free(vsrc);
+        SDL_free(fsrc);
     }
 
     void use() {

@@ -32,6 +32,7 @@ private:
     std::unique_ptr<Cubemap> cubemap_;
     std::unique_ptr<UniformBufferObject> ubo;
     std::unique_ptr<Framebuffer> fbo;
+    bool render_quad = true;
 
     float delta_time = 0.0f;
     float fps = 0.0f;

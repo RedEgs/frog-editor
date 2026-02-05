@@ -10,94 +10,92 @@
 
 class Framebuffer {
 private:
-    bool gbuffer = false;
+    unsigned int width, height;
 public:
     unsigned int ID;
-    unsigned int gPosition, gNormal, gSpecular, gRbo;
-    unsigned int screen_width, screen_height;
+    std::vector<Texture> textures;
+    std::vector<unsigned int> render_buffers;
 
-    Framebuffer() {
+    Framebuffer(unsigned int width, unsigned int height) {
         glGenFramebuffers(1, &ID);
-        glBindFramebuffer(GL_FRAMEBUFFER, ID);
+        this->width = width; this->height = height;
     }
 
-    Framebuffer(unsigned int screen_width, unsigned int screen_height) {
-        gbuffer = true;
-        this->screen_width = screen_width; this->screen_height = screen_height;
+    int new_texture(int attachment_type = GL_COLOR_ATTACHMENT0, bool increment = true) {
+        /*
+         * Creates and attaches a 2D texture to the framebuffer. The type of attachment can be passed as args.
+         * An attachment of `GL_COLOR_ATTACHMENT0` will assume there will be multiple color attachments and internally indexes the attachment
+         * returns the index of the texture inside framebuffer, NOT THE ID of the newly created texture.
+         */
+        this->use();
+        if (attachment_type == GL_COLOR_ATTACHMENT0) {
+            if (increment && textures.size() > 0) attachment_type += textures.size();
+            textures.emplace_back(width, height);
+        }
+        glFramebufferTexture2D(GL_FRAMEBUFFER, attachment_type, GL_TEXTURE_2D, textures[textures.size()-1].ID, 0);
 
-        glGenFramebuffers(1, &ID);
-        glBindFramebuffer(GL_FRAMEBUFFER, ID);
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
+            unbind();
+            return textures.size()-1;
+        }
 
-        glGenTextures(1, &gPosition);
-        glBindTexture(GL_TEXTURE_2D, gPosition);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screen_width, screen_height, 0, GL_RGBA, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-
-        glGenTextures(1, &gNormal);
-        glBindTexture(GL_TEXTURE_2D, gNormal);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screen_width, screen_height, 0, GL_RGBA, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-
-        glGenTextures(1, &gSpecular);
-        glBindTexture(GL_TEXTURE_2D, gSpecular);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_width, screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gSpecular, 0);
-
-        unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-        glDrawBuffers(3, attachments);
-
-        glGenRenderbuffers(1, &gRbo);
-        glBindRenderbuffer(GL_RENDERBUFFER, gRbo);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screen_width, screen_height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, gRbo);
-
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-            std::cout << "Framebuffer not complete!" << std::endl;
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+        unbind();
+        std::cerr << "Framebuffer failed to create new texture" << std::endl;
+        return -1;
     }
 
-    void lighting_pass() {
-        if (!gbuffer) return;
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gPosition);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, gNormal);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, gSpecular);
+    int new_render_buffer(int internal_format = GL_DEPTH24_STENCIL8) {
+        /*
+         * Generates a render buffer then stores it under the framebuffer.
+         * Internal format is assumed to be a depth-stencil, passing 0 as an arg avoids this.
+         * Returns the index of the render buffer within the framebuffer, NOT THE ID.
+         */
+        this->use();
+
+        unsigned int rbo;
+        glGenRenderbuffers(1, &rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+        render_buffers.emplace_back(rbo);
+
+        if (internal_format != 0) {
+            glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
+
+            if (internal_format == GL_DEPTH24_STENCIL8) {
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+            }
+        }
+
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
+            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+            unbind();
+            return render_buffers.size()-1;
+        }
+        unbind();
+        std::cerr << "Framebuffer failed to create new render buffer" << std::endl;
+        return -1;
     }
 
-    void copy_bind() {
-        if (!gbuffer) return;
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-        // blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
-        // the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the
-        // depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
-        glBlitFramebuffer(0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
     void clear() {
+        use();
+        glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
     void use() {
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
-        if (gbuffer) glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     }
-    void unuse() {
+
+    void use_renderbuffer(int index) {
+        glBindRenderbuffer(GL_RENDERBUFFER, render_buffers[index]);
+    }
+
+    void use_texture(int index) {
+        glBindTexture(GL_TEXTURE_2D, textures[index].ID);
+    }
+
+    static void unbind() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-
-
-
 
 };
 
