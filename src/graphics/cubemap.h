@@ -23,7 +23,7 @@ public:
     "uniform mat4 projection;"
     "uniform mat4 view;"
 
-    "void main()"
+    "void forward-renderer()"
     "{"
     "    TexCoords = aPos;"
     "    gl_Position = projection * view * vec4(aPos, 1.0);"
@@ -34,7 +34,7 @@ public:
     "out vec4 FragColor;"
     "in vec3 TexCoords;"
     "uniform samplerCube skybox;"
-    "void main()"
+    "void forward-renderer()"
     "{"
     "   FragColor = texture(skybox, TexCoords);"
     "}";

@@ -47,7 +47,7 @@ private:
 public:
     static std::string open_file_dialogue_blocking(SDL_DialogFileFilter filter) {
         /*
-         * Opens a file dialogue and returns the file paths as strings, this pauses the main thread until a file is selected.
+         * Opens a file dialogue and returns the file paths as strings, this pauses the forward-renderer thread until a file is selected.
          */
 
         std::string path;
@@ -63,7 +63,7 @@ public:
 
     static void open_file_dialogue(SDL_DialogFileFilter filter, std::string path) {
         /*
-         * Opens a file dialogue and returns the file paths as strings without pausing the main program.
+         * Opens a file dialogue and returns the file paths as strings without pausing the forward-renderer program.
          * The string is immediately set once a result is chosen. This function is asynchronous.
          */
         SDL_ShowOpenFileDialog(SDL_DialogFileCallback(Files::file_callback), &path, NULL, &filter, 1, NULL, false);
@@ -72,7 +72,7 @@ public:
 
     static std::vector<std::string> open_file_dialogue_blocking_multiple(SDL_DialogFileFilter filter) {
         /*
-         * Opens a file dialogue and returns the file paths as strings, this pauses the main thread until a file is selected.
+         * Opens a file dialogue and returns the file paths as strings, this pauses the forward-renderer thread until a file is selected.
          */
 
         std::vector<std::string> path;
@@ -85,7 +85,7 @@ public:
 
     static void open_file_dialogue_multiple(SDL_DialogFileFilter filter, std::vector<std::string> path) {
         /*
-         * Opens a file dialogue and returns the file paths as strings without pausing the main program.
+         * Opens a file dialogue and returns the file paths as strings without pausing the forward-renderer program.
          * The string is immediately set once a result is chosen. This function is asynchronous.
          */
         SDL_ShowOpenFileDialog(SDL_DialogFileCallback(Files::file_callback), &path, NULL, &filter, 1, NULL, true);

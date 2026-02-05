@@ -30,7 +30,7 @@ public:
     }
 
     void on_render(Shader *shader, Camera camera) override {
-        if (shader->name != "main") return;
+        if (shader->name != "forward-renderer") return;
 
         auto* t = owner->get_component<Transform>();
         if (t == NULL) {

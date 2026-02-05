@@ -40,7 +40,7 @@ SDL_AppResult Game::Init() {
 
     scene_manager = SceneManager();
 
-    Shader *shader_prog = new Shader(RESOURCES("main/vertex.glsl"), RESOURCES("main/fragment.glsl"), "main");
+    Shader *shader_prog = new Shader(RESOURCES("forward-renderer/vertex.glsl"), RESOURCES("forward-renderer/fragment.glsl"), "forward-renderer");
     Shader *cubemap_shader = new Shader(RESOURCES("cubemap/cubemapvert.glsl"), RESOURCES("cubemap/cubemapfrag.glsl"), "skybox");
     Shader *billboard_shader = new Shader(RESOURCES("billboard/bvertex.glsl"), RESOURCES("billboard/bfragment.glsl"), "billboard");
     // Shader *lightpass_shader = new Shader(RESOURCES("lightpass/vertex.glsl"), RESOURCES("lightpass/fragment.glsl"), "lightpass");

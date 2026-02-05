@@ -169,7 +169,7 @@ public:
             }
         }
 
-        if (shader->name != "main") return;
+        if (shader->name != "forward-renderer") return;
         std::cout << "rendering light!!" << std::endl;
         if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
             // point light UI
