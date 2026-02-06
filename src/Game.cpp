@@ -51,36 +51,31 @@ SDL_AppResult Game::Init() {
     Shader *cubemap_shader = new Shader(RESOURCES("cubemap/cubemapvert.glsl"), RESOURCES("cubemap/cubemapfrag.glsl"), "skybox");
     Shader *billboard_shader = new Shader(RESOURCES("billboard/bvertex.glsl"), RESOURCES("billboard/bfragment.glsl"), "billboard");
     Shader *quad_shader = new Shader(RESOURCES("quad-2d/vertex.glsl"), RESOURCES("quad-2d/fragment.glsl"), "quad-2d");
-    // Shader *lightpass_shader = new Shader(RESOURCES("lightpass/vertex.glsl"), RESOURCES("lightpass/fragment.glsl"), "lightpass");
-    // Shader *geometrypass_shader = new Shader(RESOURCES("gpass/vertex.glsl"), RESOURCES("gpass/fragment.glsl"), "gpass");
+    Shader *lightpass_shader = new Shader(RESOURCES("lightpass/vertex.glsl"), RESOURCES("lightpass/fragment.glsl"), "light-pass");
+    Shader *geometrypass_shader = new Shader(RESOURCES("gpass/vertex.glsl"), RESOURCES("gpass/fragment.glsl"), "geometry-pass");
     std::cout << "Compiled shaders" << std::endl;
     glCheckError__();
 
-    fbo = std::make_unique<Framebuffer>(1280, 720);
-    std::cout << "Made FB" << std::endl;
-    glCheckError__();
-
-    fbo.get()->new_texture();
-    std::cout << "Made FB texture" << std::endl;
+    gbuffer = std::make_unique<GBuffer>(1280, 720);
+    std::cout << "Made Gbuffer" << std::endl;
     glCheckError__();
 
     shaders.emplace_back(shader_prog);
     shaders.emplace_back(cubemap_shader);
     shaders.emplace_back(billboard_shader);
     shaders.emplace_back(quad_shader);
-    // shaders.emplace_back(lightpass_shader);
-    // shaders.emplace_back(geometrypass_shader);
+    shaders.emplace_back(lightpass_shader);
+    shaders.emplace_back(geometrypass_shader);
     std::cout << "Cached shaders" << std::endl;
 
     int scene = scene_manager.add_scene(std::make_unique<Test_Scene>());
     scene_manager.set_scene(scene);
     std::cout << "Set Scene" << std::endl;
-    //
-    // geometrypass_shader->use();
-    // geometrypass_shader->setInt("gPosition", 0);
-    // geometrypass_shader->setInt("gNormal", 1);
-    // geometrypass_shader->setInt("gAlbedoSpec", 2);
-    //
+
+    lightpass_shader->use();
+    lightpass_shader->setInt("gPosition", 0);
+    lightpass_shader->setInt("gNormal", 1);
+    lightpass_shader->setInt("gAlbedoSpec", 2);
 
     std::cout << "Finished Init" << std::endl;
     return SDL_APP_CONTINUE;
@@ -173,8 +168,8 @@ SDL_AppResult Game::Event(SDL_Event *event) {
                 case SDLK_TAB:
                     scene_manager.get_camera()->toggle_handle_input();
                     SDL_SetWindowRelativeMouseMode(m_window.get(), scene_manager.get_camera()->get_handle_input()); break;
-                case SDLK_F1:
-                    render_quad = !render_quad;
+            case SDLK_F1:
+                    forward_renderer = not forward_renderer;
                     break;
             }
 
@@ -195,12 +190,12 @@ void Game::render_scene() {
 
     Quad q;
 
-    Shader *shader_program = shaders.at(0);
+    Shader *frenderer_program = shaders.at(0); // forward renderer
     Shader *cubemap_shader = shaders.at(1);
     Shader *billboard_shader = shaders.at(2);
     Shader *quad_shader = shaders.at(3);
-    // Shader *lightpass_shader = shaders.at(2);
-    // Shader *geometrypass_shader = shaders.at(3);
+    Shader *lightpass_shader = shaders.at(4);
+    Shader *geometrypass_shader = shaders.at(5);
 
     UniformBufferObject *uniform = ubo.get();
 
@@ -208,50 +203,22 @@ void Game::render_scene() {
     uniform->set_object(16, scene_manager.get_camera()->camera_position);
     uniform->set_object(32, scene_manager.get_camera()->view_matrix);
     uniform->set_object(96, scene_manager.get_camera()->project_matrix);
-    //
-    // cubemap_shader->use();
-    // scene_manager.render(cubemap_shader);
 
-    shader_program->use();
-    shader_program->setFloat("material.shininess", 10.0f);
-    scene_manager.render(shader_program);
+    cubemap_shader->use();
+    scene_manager.render(cubemap_shader);
 
-
-    fbo->use();
-    fbo->clear();
-
-    shader_program->use();
-    shader_program->setFloat("material.shininess", 10.0f);
-    scene_manager.render(shader_program);
-
-
-    Framebuffer::unbind();
-
-    if (render_quad) {
-        quad_shader->use();
-
-        glActiveTexture(GL_TEXTURE0);
-        fbo->use_texture(0);
-        quad_shader->setInt("screenTexture", 0);
-        q.draw();
+    if (!forward_renderer) {
+        gbuffer->draw(geometrypass_shader, lightpass_shader, &scene_manager, &q);
+    } else {
+        frenderer_program->use();
+        scene_manager.render(frenderer_program);
     }
 
+    billboard_shader->use();
+    scene_manager.render(billboard_shader);
 
 
-    // shader_program->setMat4("view", scene_manager.get_camera()->view_matrix);
-    // shader_program->setMat4("proj", scene_manager.get_camera()->project_matrix);
-    // shader_program->setVec3("view_position", scene_manager.get_camera()->camera_position);
-
-    // billboard_shader->use();
-    // scene_manager.render(billboard_shader);
-
-
-    // lightpass_shader->dir_light_count = 0;
-    // lightpass_shader->point_light_count = 0;
-    shader_program->dir_light_count = 0;
-    shader_program->point_light_count = 0;
-
-
+;
     ImGuizmo::Enable(true);
 
 }

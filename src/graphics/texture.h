@@ -50,19 +50,18 @@ public:
         SDL_free(converted_texure);
     }
 
-    Texture(int width, int height, void * data = NULL) {
+    Texture(int width, int height, int internal_format = GL_SRGB_ALPHA, int format = GL_RGBA, int type = GL_UNSIGNED_BYTE, void * data = NULL) {
         this->type = "diffuse";
 
         glGenTextures(1, &ID);
         glBindTexture(GL_TEXTURE_2D, ID);
 
-        if (data == NULL) glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        else { glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data); }
+        if (data == NULL) glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, NULL);
+        else { glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, &data); }
 
         if (Debug::glCheckError_(__FILE__, __LINE__) != GL_NO_ERROR) {
             std::cerr << "Texture creation encountered an error. Likely invalid data was passed." << std::endl;
         }
-
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

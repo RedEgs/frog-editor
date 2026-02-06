@@ -17,17 +17,19 @@ layout (std140) uniform Globals
     mat4 proj; // 144
 };
 
-uniform sampler2D texture_diffuse1;
-uniform sampler2D texture_specular1;
+struct Material {
+    vec3 ambient;
+    sampler2D diffuse;
+    sampler2D specular;
+    float shininess;
+};
+
+uniform Material material;
 
 void main()
 {
-    // store the fragment position vector in the first gbuffer texture
-    gPosition = FragPos;
-    // also store the per-fragment normals into the gbuffer
-    gNormal = normalize(Normal);
-    // and the diffuse per-fragment color
-    gAlbedoSpec.rgb = texture(texture_diffuse1, TexCoords).rgb;
-    // store specular intensity in gAlbedoSpec's alpha component
-    gAlbedoSpec.a = texture(texture_specular1, TexCoords).r;
+    gPosition = FragPos;                         // world-space position
+    gNormal   = normalize(Normal);               // world-space normal
+    gAlbedoSpec.rgb = texture(material.diffuse, TexCoords).rgb;  // diffuse color
+    gAlbedoSpec.a   = texture(material.specular, TexCoords).r;   // specular intensity
 }

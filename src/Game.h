@@ -8,6 +8,7 @@
 #include "core/scenemanager.h"
 #include "graphics/cubemap.h"
 #include "graphics/framebuffer.h"
+#include "graphics/gbuffer.h"
 #include "graphics/model.h"
 #include "graphics/shader.h"
 #include "graphics/texture.h"
@@ -31,8 +32,8 @@ private:
     std::vector<Shader*> shaders;
     std::unique_ptr<Cubemap> cubemap_;
     std::unique_ptr<UniformBufferObject> ubo;
-    std::unique_ptr<Framebuffer> fbo;
-    bool render_quad = true;
+    std::unique_ptr<GBuffer> gbuffer;
+    bool forward_renderer = false;
 
     float delta_time = 0.0f;
     float fps = 0.0f;

@@ -39,6 +39,7 @@ add_executable(sdl3_first src/main.cpp
         src/graphics/framebuffer.h
         src/graphics/quad.h
         src/utility/debug.h
+        src/graphics/gbuffer.h
 )
 
 find_package(SDL3 CONFIG REQUIRED)

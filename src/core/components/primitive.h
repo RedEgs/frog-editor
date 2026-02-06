@@ -280,7 +280,8 @@ public:
     }
 
     void on_render(Shader *shader, Camera camera) override {
-        if (shader->name != "forward-renderer") return;
+        if (shader->name != "forward-renderer" && shader->name != "geometry-pass")
+            return;
 
         auto* t = owner->get_component<Transform>();
         if (t == nullptr) {

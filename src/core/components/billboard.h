@@ -74,7 +74,6 @@ public:
                 billboard.position = position;
             }
 
-
             glEnable(GL_CULL_FACE);
         }
     }
