@@ -61,7 +61,7 @@ vec3 calculate_directional_light(DirectionalLight light, vec3 diffuse_texel, vec
    float diffuse = max(dot(normal, light_direction), 0.0);
 
    vec3 halfway = normalize(light_direction + view_direction);
-   float specular = pow(max(dot(normal, halfway), 0.0), material.shininess);
+   float specular = pow(max(dot(normal, halfway), 0.0), 16.0f);
 
    vec3 ambient_light = light.ambient * diffuse_texel;
    vec3 diffuse_light = light.diffuse * diffuse * diffuse_texel;
@@ -81,12 +81,12 @@ vec3 calculate_point_light(PointLight light, vec3 diffuse_texel, vec3 specular_t
 
    vec3 normal = normalize(new_vertex_normal);
    vec3 halfway = normalize(light_direction + view_direction);
-   float specular = pow(max(dot(normal, halfway), 0.0), material.shininess);
+   float specular = pow(max(dot(normal, halfway), 0.0), 16.0f);
 
 
    vec3 diffuse_light = (diffuse_texel * max(dot(normalize(new_vertex_normal), light_direction), 0.0)) * light.diffuse;
    vec3 ambient_light = light.ambient * diffuse_texel ;
-   vec3 specular_light = (specular_texel * pow(max(dot(normal, halfway), 0.0), material.shininess)) * light.specular;
+   vec3 specular_light = (specular_texel * pow(max(dot(normal, halfway), 0.0), 16.0f)) * light.specular;
 
    diffuse_light *= attenuation;
    ambient_light *= attenuation;

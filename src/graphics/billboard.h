@@ -85,6 +85,8 @@ public:
     }
 
     void draw(Shader *shader) {
+        glEnable(GL_BLEND);
+
         glm::mat4 model_mat = glm::mat4(1.0);
         model_mat = glm::translate(model_mat, position);
         model_mat = glm::scale(model_mat, glm::vec3(.5f));
@@ -93,11 +95,13 @@ public:
         shader->setBool("ylock", ylock);
         shader->setFloat("size", size);
 
+        glActiveTexture(GL_TEXTURE0);
         texture.use();
 
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        glDisable(GL_BLEND);
     }
 
     ~Billboard() {

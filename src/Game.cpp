@@ -204,18 +204,25 @@ void Game::render_scene() {
     uniform->set_object(32, scene_manager.get_camera()->view_matrix);
     uniform->set_object(96, scene_manager.get_camera()->project_matrix);
 
-    cubemap_shader->use();
-    scene_manager.render(cubemap_shader);
+    //
+    //
 
     if (!forward_renderer) {
         gbuffer->draw(geometrypass_shader, lightpass_shader, &scene_manager, &q);
     } else {
         frenderer_program->use();
         scene_manager.render(frenderer_program);
+
+        frenderer_program->dir_light_count = 0;
+        frenderer_program->point_light_count = 0;
     }
 
     billboard_shader->use();
     scene_manager.render(billboard_shader);
+
+    cubemap_shader->use();
+    scene_manager.render(cubemap_shader);
+
 
 
 ;
@@ -231,7 +238,7 @@ SDL_AppResult Game::OnRender() {
     glEnable(GL_BLEND);
 
 
-    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+    glClearColor(0.00f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

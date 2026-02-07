@@ -137,13 +137,13 @@ public:
         gpass_shader->use();
         scene_manager->render(gpass_shader);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void light_pass(Shader *lightpass_shader, SceneManager *scene_manager, Quad q) {
         /*
          * Performs exclusively the light pass, must be used after the geometry pass.
          */
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDisable(GL_DEPTH_TEST);
 
         lightpass_shader->use();
@@ -172,7 +172,16 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
+        glDepthFunc(GL_LESS);  // default
+        glDepthMask(GL_TRUE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     void draw(Shader *gpass_shader, Shader *lpass_shader, SceneManager *scene_manager, Quad *q) {
@@ -182,6 +191,8 @@ public:
         geometry_pass(gpass_shader, scene_manager);
         light_pass(lpass_shader, scene_manager, *q);
         blit();
+
+
     }
 
 

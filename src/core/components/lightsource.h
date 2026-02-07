@@ -153,7 +153,6 @@ public:
 
         if (render_icon) {
             if (shader->name == "billboard") {
-                glDisable(GL_CULL_FACE);
                 glm::vec3 position;
                 if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
                     position = p->position;
@@ -164,8 +163,6 @@ public:
                 icon.size = .5f;
                 icon.position = position;
                 icon.draw(shader);
-
-                glEnable(GL_CULL_FACE);
             }
         }
 
@@ -188,25 +185,25 @@ public:
 
             shader->setBool(base + ".enabled", true);
         }
-        // else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
-        //     if (t != NULL) {
-        //         glm::mat4 m = inverse(t->get_matrix());
-        //         glm::vec3 dir = glm::vec3(m[3]);
-        //
-        //         d->direction = dir;
-        //     }
-        //
-        //     // directional light UI
-        //     int i = shader->dir_light_count++;
-        //     std::string base = "directional_lights[" + std::to_string(i) + "]";
-        //
-        //     shader->setVec3(base + ".direction", d->direction);
-        //     shader->setVec3(base + ".ambient", d->ambient);
-        //     shader->setVec3(base + ".diffuse", d->diffuse);
-        //     shader->setVec3(base + ".specular", d->specular);
-        //
-        //     shader->setBool(base + ".enabled", true);
-        // }
+        else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
+            if (t != NULL) {
+                glm::mat4 m = inverse(t->get_matrix());
+                glm::vec3 dir = glm::vec3(m[3]);
+
+                d->direction = dir;
+            }
+
+            // directional light UI
+            int i = shader->dir_light_count++;
+            std::string base = "directional_lights[" + std::to_string(i) + "]";
+
+            shader->setVec3(base + ".direction", d->direction);
+            shader->setVec3(base + ".ambient", d->ambient);
+            shader->setVec3(base + ".diffuse", d->diffuse);
+            shader->setVec3(base + ".specular", d->specular);
+
+            shader->setBool(base + ".enabled", true);
+        }
     }
 
     static const char* get_static_class_name() { return "Light Source"; };

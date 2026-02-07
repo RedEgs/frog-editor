@@ -38,12 +38,12 @@ public:
             else if (textures[i].type == "specular") number = std::to_string(specular_count++);
 
             shader.setInt(("material." + textures[i].type + number).c_str(), i);
+            glActiveTexture(GL_TEXTURE0);
             textures[i].use();
 
             //glBindTexture(GL_TEXTURE_2D, textures[i].ID);
         }
 
-        glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
