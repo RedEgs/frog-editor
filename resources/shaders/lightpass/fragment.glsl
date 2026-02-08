@@ -123,6 +123,8 @@ void main()
         }
     }
 
-    FragColor = vec4(lighting, 1.0f);
+    FragColor = vec4(lighting, 1.0);
+//    float gamma = 2.2;
+//    FragColor = vec4(pow(lighting.rgb, vec3(1.0/gamma)), 1.0);
 
 }

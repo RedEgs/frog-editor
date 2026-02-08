@@ -4,6 +4,7 @@
 
 #ifndef SDL3_FIRST_CAMERA_H
 #define SDL3_FIRST_CAMERA_H
+#include <iostream>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
@@ -111,6 +112,11 @@ public:
     glm::mat4 view_matrix;
     glm::vec3 camera_direction;
     glm::mat4 project_matrix;
+
+    void lookat(glm::vec3 position) {
+        std::cout << "looking at" << position.x << ", " << position.y << "," << position.z << std::endl;
+        view_matrix = glm::lookAt(camera_position, position+camera_front, camera_up);
+    }
 
     void toggle_handle_input() {
         handle_input = !handle_input;

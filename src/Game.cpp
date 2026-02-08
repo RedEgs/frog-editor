@@ -41,7 +41,7 @@ SDL_AppResult Game::Init() {
 
 
     scene_manager = SceneManager();
-
+    editor = std::make_unique<Editor>(&scene_manager);
 
     ubo = std::make_unique<UniformBufferObject>(160, 0);
     std::cout << "Made UBO" << std::endl;
@@ -53,11 +53,17 @@ SDL_AppResult Game::Init() {
     Shader *quad_shader = new Shader(RESOURCES("quad-2d/vertex.glsl"), RESOURCES("quad-2d/fragment.glsl"), "quad-2d");
     Shader *lightpass_shader = new Shader(RESOURCES("lightpass/vertex.glsl"), RESOURCES("lightpass/fragment.glsl"), "light-pass");
     Shader *geometrypass_shader = new Shader(RESOURCES("gpass/vertex.glsl"), RESOURCES("gpass/fragment.glsl"), "geometry-pass");
+    Shader *shadowdepth_shader = new Shader(RESOURCES("shadowdepth/vertex.glsl"), RESOURCES("shadowdepth/fragment.glsl"), "shadow-pass");
+    Shader *shadowmap_shader = new Shader(RESOURCES("shadowmap/vertex.glsl"), RESOURCES("shadowmap/fragment.glsl"), "shadow-renderer");
     std::cout << "Compiled shaders" << std::endl;
     glCheckError__();
 
     gbuffer = std::make_unique<GBuffer>(1280, 720);
     std::cout << "Made Gbuffer" << std::endl;
+    glCheckError__();
+
+    shadowmap = std::make_unique<Shadowmap>(1024);
+    std::cout << "Made Shadowmap" << std::endl;
     glCheckError__();
 
     shaders.emplace_back(shader_prog);
@@ -66,6 +72,9 @@ SDL_AppResult Game::Init() {
     shaders.emplace_back(quad_shader);
     shaders.emplace_back(lightpass_shader);
     shaders.emplace_back(geometrypass_shader);
+    shaders.emplace_back(shadowdepth_shader);
+    shaders.emplace_back(shadowmap_shader);
+
     std::cout << "Cached shaders" << std::endl;
 
     int scene = scene_manager.add_scene(std::make_unique<Test_Scene>());
@@ -168,8 +177,11 @@ SDL_AppResult Game::Event(SDL_Event *event) {
                 case SDLK_TAB:
                     scene_manager.get_camera()->toggle_handle_input();
                     SDL_SetWindowRelativeMouseMode(m_window.get(), scene_manager.get_camera()->get_handle_input()); break;
-            case SDLK_F1:
+                case SDLK_F1:
                     forward_renderer = not forward_renderer;
+                    break;
+                case SDLK_F:
+                    scene_manager.get_camera()->lookat(editor->get_selected_object_position());
                     break;
             }
 
@@ -196,6 +208,8 @@ void Game::render_scene() {
     Shader *quad_shader = shaders.at(3);
     Shader *lightpass_shader = shaders.at(4);
     Shader *geometrypass_shader = shaders.at(5);
+    Shader *shadowdepth_shader = shaders.at(6);
+    Shader *shadowmap_shader = shaders.at(7);
 
     UniformBufferObject *uniform = ubo.get();
 
@@ -204,18 +218,30 @@ void Game::render_scene() {
     uniform->set_object(32, scene_manager.get_camera()->view_matrix);
     uniform->set_object(96, scene_manager.get_camera()->project_matrix);
 
-    //
-    //
+
 
     if (!forward_renderer) {
         gbuffer->draw(geometrypass_shader, lightpass_shader, &scene_manager, &q);
     } else {
-        frenderer_program->use();
-        scene_manager.render(frenderer_program);
-
-        frenderer_program->dir_light_count = 0;
-        frenderer_program->point_light_count = 0;
+        // frenderer_program->use();
+        // scene_manager.render(frenderer_program);
+        //
+        // frenderer_program->dir_light_count = 0;
+        // frenderer_program->point_light_count = 0;
+        glm::vec3 light_pos = editor->get_selected_object_position();//glm::vec3(-2.0f, 4.0f, -1.0f);
+        shadowmap->first_pass(1280, 720, shadowdepth_shader, &scene_manager, light_pos);
+        shadowmap->second_pass(shadowmap_shader, &scene_manager, light_pos);
     }
+
+
+    // //
+    // quad_shader->use();
+    //
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, shadowmap->depthMap);
+    // quad_shader->setInt("screenTexture", 0);
+    // q.draw();
+
 
     billboard_shader->use();
     scene_manager.render(billboard_shader);
@@ -223,9 +249,6 @@ void Game::render_scene() {
     cubemap_shader->use();
     scene_manager.render(cubemap_shader);
 
-
-
-;
     ImGuizmo::Enable(true);
 
 }
@@ -236,6 +259,7 @@ SDL_AppResult Game::OnRender() {
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_BLEND);
+
 
 
     glClearColor(0.00f, 0.0f, 0.0f, 1.0f);
@@ -252,145 +276,6 @@ SDL_AppResult Game::OnRender() {
     scene_manager.process_remove_queue();
     return SDL_APP_CONTINUE;
 }
-
-void Game::imgui_sceneview() {
-    ImGui::Begin("Scene Game Objects");
-
-    if (ImGui::BeginPopupContextItem("scene_objects_context_menu")) {
-        if (ImGui::MenuItem("Add Empty Game Object")) {
-            scene_manager.get_current_scene()->game_objects.push_back(std::make_unique<GameObject>());
-            ImGui::CloseCurrentPopup();
-        }
-        if (ImGui::BeginMenu("Add Game Object")) {
-            static std::vector<std::string> object_names = GameObjectRegistry::instance().get_names();
-            for (int i = 0; i < object_names.size(); i++) {
-                if (ImGui::Button(object_names[i].c_str())) {
-                    auto* obj = GameObjectRegistry::instance().get_game_object_constructor(i);
-                    scene_manager.get_current_scene()->game_objects.push_back(std::unique_ptr<GameObject>(obj));
-
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-            ImGui::EndMenu();
-        }
-        ImGui::EndPopup();
-    }
-
-
-
-    static int item_selected_index = 0;
-    if (ImGui::BeginListBox("##SceneObjectsListbox", ImVec2(-FLT_MIN, -FLT_MIN))) {
-        if (!scene_manager.get_game_objects()->empty()) {
-            for (int i = 0; i < scene_manager.get_game_objects()->size(); i++) {
-                std::string n = scene_manager.get_game_objects()->at(i)->get_instance_name();
-                n += (" " + std::to_string(i));
-                const bool is_selected = (item_selected_index == i);
-
-                if (ImGui::Selectable(n.c_str(), is_selected)) {
-                    item_selected_index = i;
-                }
-                if (ImGui::BeginPopupContextItem()) {
-                    item_selected_index = i;
-
-                    if (ImGui::Button("Remove")) {
-                        item_selected_index = 0;
-                        scene_manager.remove_game_object(i);
-                        ImGui::CloseCurrentPopup();
-                    }
-                    ImGui::EndPopup();
-                }
-
-                if (is_selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-        }
-    }
-    ImGui::EndListBox();
-    // Check if the user right clicked in the empty space of the listbox
-    if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()) && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !ImGui::IsAnyItemHovered()) {
-        ImGui::OpenPopup("scene_objects_context_menu");
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    ImGui::End();
-
-    ImGui::Begin("Game Object Properties");
-    if (!scene_manager.get_game_objects()->empty()) {
-
-        auto selected_game_object = scene_manager.get_game_objects()->at(item_selected_index).get();
-
-        std::string game_object_rename = selected_game_object->instance_name.data();
-        if (ImGui::InputText("Game Object Name", &game_object_rename, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            selected_game_object->instance_name = game_object_rename;
-        }
-        ImGui::Spacing();
-
-        for (int i = 0; i < selected_game_object->components.size(); i++) {
-
-            auto component = selected_game_object->components.at(i).get();
-
-            if (ImGui::CollapsingHeader(component->get_class_name())) {
-                component->properties_editor_imgui(scene_manager.get_current_scene());
-            }
-        }
-        ImGui::Separator();
-        if (ImGui::Button("Add Component (+)", ImVec2(-FLT_MIN, ImGui::CalcTextSize("Add Component (+)").y *2))) {
-            ImGui::OpenPopup("add_component_list");
-        }
-
-        if (ImGui::BeginPopup("add_component_list")) {
-            ImGui::Text("List:");
-            static std::vector<std::string> component_names = ComponentRegistry::instance().get_names();
-            for (int i = 0; i < component_names.size(); i++) {
-                if (ImGui::Button(component_names[i].c_str())) {
-                    auto* obj = ComponentRegistry::instance().get_component_constructor(i);
-                    selected_game_object->add_component_instance_runtime(obj);
-
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-
-            ImGui::EndPopup();
-        }
-
-    }
-
-    ImGui::End();
-}
-
-void Game::imgui_perfstats() {
-    bool p_open = true;
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoNav;
-    ImGui::SetNextWindowBgAlpha(0.35f);
-    ImGui::Begin("Debug Overlay", &p_open, window_flags);
-
-    static float _time = 0.0; _time += delta_time;
-    static std::string fps_text = "FPS: " + std::to_string(fps);
-    if (_time >= .5) {
-        fps_text = "FPS: " + std::to_string(fps);
-        _time = 0.0;
-    }
-
-    ImGui::Text(fps_text.c_str());
-
-
-    ImGui::End();
-}
-
 
 void Game::render_imgui() {
     ImGui_ImplOpenGL3_NewFrame();
@@ -411,9 +296,7 @@ void Game::render_imgui() {
 
     ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
-    imgui_sceneview();
-    imgui_perfstats();
-
+    editor->render(delta_time, fps);
     scene_manager.imgui();
 
     ImGui::Render();

@@ -166,7 +166,7 @@ public:
             }
         }
 
-        if (shader->name != "light-pass" && shader->name != "forward-renderer") return;
+        if (shader->name != "light-pass" && shader->name != "forward-renderer" && shader->name != "shadow-pass" && shader->name != "shadow-renderer") return;
         if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
             // point light UI
             if (t != NULL) {

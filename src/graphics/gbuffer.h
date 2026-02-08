@@ -80,7 +80,7 @@ public:
         textures.emplace_back(
             width,
             height,
-            GL_RGBA8,
+            GL_SRGB_ALPHA,
             GL_RGBA,
             GL_UNSIGNED_BYTE
         );

@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 
 #include "core/camera.h"
+#include "core/imgui_editor.h"
 #include "core/scene.h"
 #include "core/scenemanager.h"
 #include "graphics/cubemap.h"
@@ -11,6 +12,7 @@
 #include "graphics/gbuffer.h"
 #include "graphics/model.h"
 #include "graphics/shader.h"
+#include "graphics/shadowmap.h"
 #include "graphics/texture.h"
 #include "graphics/uniform_buffer_object.h"
 
@@ -28,11 +30,13 @@ private:
     std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> m_window;
     SDL_GLContextState *gl_context;
     SceneManager scene_manager;
+    std::unique_ptr<Editor> editor;
 
     std::vector<Shader*> shaders;
     std::unique_ptr<Cubemap> cubemap_;
     std::unique_ptr<UniformBufferObject> ubo;
     std::unique_ptr<GBuffer> gbuffer;
+    std::unique_ptr<Shadowmap> shadowmap;
     bool forward_renderer = false;
 
     float delta_time = 0.0f;
@@ -53,6 +57,4 @@ private:
 
     void update_trackframetime();
 
-    void imgui_perfstats();
-    void imgui_sceneview();
 };

@@ -40,6 +40,8 @@ add_executable(sdl3_first src/main.cpp
         src/graphics/quad.h
         src/utility/debug.h
         src/graphics/gbuffer.h
+        src/graphics/shadowmap.h
+        src/core/imgui_editor.h
 )
 
 find_package(SDL3 CONFIG REQUIRED)

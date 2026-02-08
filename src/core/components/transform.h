@@ -4,6 +4,7 @@
 
 #ifndef SDL3_FIRST_TRANSFORM_H
 #define SDL3_FIRST_TRANSFORM_H
+#include <ImGuizmo.h>
 #include <glm/fwd.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
