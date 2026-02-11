@@ -219,19 +219,30 @@ void Game::render_scene() {
     uniform->set_object(96, scene_manager.get_camera()->project_matrix);
 
 
+    glm::vec3 light_pos = editor->get_selected_object_position();//glm::vec3(-2.0f, 4.0f, -1.0f);
+
+    shadowmap->first_pass(1280, 720, shadowdepth_shader, &scene_manager, light_pos);
+    //shadowmap->second_pass(shadowmap_shader, &scene_manager, light_pos, gbuffer.get());
 
     if (!forward_renderer) {
-        gbuffer->draw(geometrypass_shader, lightpass_shader, &scene_manager, &q);
+        //gbuffer->draw(geometrypass_shader, lightpass_shader, &scene_manager, &q);
+        gbuffer->geometry_pass(geometrypass_shader, &scene_manager);
+
+        glm::mat4 lightView = glm::lookAt(light_pos,
+        glm::vec3( 0.0f, 0.0f,  0.0f),
+        glm::vec3( 0.0f, 1.0f,  0.0f));
+        glm::mat4 lightSpaceMatrix = shadowmap->light_projection * lightView;
+
+        gbuffer->light_pass(lightpass_shader, &scene_manager, q, shadowmap.get(), lightSpaceMatrix, light_pos);
+        gbuffer->blit();
     } else {
-        // frenderer_program->use();
-        // scene_manager.render(frenderer_program);
-        //
-        // frenderer_program->dir_light_count = 0;
-        // frenderer_program->point_light_count = 0;
-        glm::vec3 light_pos = editor->get_selected_object_position();//glm::vec3(-2.0f, 4.0f, -1.0f);
-        shadowmap->first_pass(1280, 720, shadowdepth_shader, &scene_manager, light_pos);
-        shadowmap->second_pass(shadowmap_shader, &scene_manager, light_pos);
+        frenderer_program->use();
+        scene_manager.render(frenderer_program);
+
+        frenderer_program->dir_light_count = 0;
+        frenderer_program->point_light_count = 0;
     }
+
 
 
     // //

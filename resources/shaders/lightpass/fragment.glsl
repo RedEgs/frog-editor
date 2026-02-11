@@ -6,6 +6,10 @@ in vec2 TexCoords;
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
+uniform sampler2D gShadowmap;
+
+uniform mat4 lightSpaceMatrix;
+uniform vec3 lightPos;
 
 layout (std140) uniform Globals
 {
@@ -83,6 +87,25 @@ vec3 calculate_directional_light(DirectionalLight light, vec3 diffuse_texel, vec
 
 }
 
+float ShadowCalculation(vec3 fragPos, vec3 normal)
+{
+    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);
+
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+
+    if(projCoords.z > 1.0)
+    return 0.0;
+
+    float closestDepth = texture(gShadowmap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    float bias = max(0.05 * (1.0 - dot(normal, normalize(lightPos - fragPos))), 0.005);
+
+    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
+}
+
+
 void main()
 {
     // retrieve data from gbuffer
@@ -90,6 +113,8 @@ void main()
     vec3 Normal = normalize(texture(gNormal, TexCoords).rgb);
     vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
     float Specular = texture(gAlbedoSpec, TexCoords).a;
+
+    float shadow = ShadowCalculation(FragPos, Normal);
 
     // then calculate lighting as usual
     vec3 lighting  = Diffuse; // hard-coded ambient component
@@ -123,6 +148,7 @@ void main()
         }
     }
 
+    lighting *= (1.0 - shadow);
     FragColor = vec4(lighting, 1.0);
 //    float gamma = 2.2;
 //    FragColor = vec4(pow(lighting.rgb, vec3(1.0/gamma)), 1.0);

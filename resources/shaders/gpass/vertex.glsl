@@ -25,7 +25,6 @@ void main()
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     Normal = normalMatrix * aNormal;
-
     gl_Position = proj * view * worldPos;
 }
 

@@ -58,26 +58,33 @@ public:
         glCullFace(GL_BACK);
         glViewport(0, 0, width, height);
     }
-
-    void second_pass(Shader *shadow_renderer, SceneManager *scene_manager, glm::vec3 light_pos) {
-        shadow_renderer->use();
-        shadow_renderer->setVec3("lightPos", light_pos);
-
-        glm::mat4 lightView = glm::lookAt(light_pos,
-                                  glm::vec3( 0.0f, 0.0f,  0.0f),
-                                  glm::vec3( 0.0f, 1.0f,  0.0f));
-        glm::mat4 lightSpaceMatrix = light_projection * lightView;
-        shadow_renderer->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, d.ID);
-        shadow_renderer->setInt("diffuseTexture", 0);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        shadow_renderer->setInt("shadowMap", 1);
-        scene_manager->render(shadow_renderer);
-    }
+    //
+    // void second_pass(Shader *shadow_renderer, SceneManager *scene_manager, glm::vec3 light_pos, GBuffer *gbuffer) {
+    //     glBindFramebuffer(GL_FRAMEBUFFER, gbuffer->ID);
+    //
+    //     glActiveTexture(GL_TEXTURE3);
+    //     glBindTexture(GL_TEXTURE_2D, gbuffer->textures[3].ID);
+    //
+    //     shadow_renderer->use();
+    //     shadow_renderer->setVec3("lightPos", light_pos);
+    //
+    //     glm::mat4 lightView = glm::lookAt(light_pos,
+    //                               glm::vec3( 0.0f, 0.0f,  0.0f),
+    //                               glm::vec3( 0.0f, 1.0f,  0.0f));
+    //     glm::mat4 lightSpaceMatrix = light_projection * lightView;
+    //     shadow_renderer->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    //
+    //     glActiveTexture(GL_TEXTURE0);
+    //     glBindTexture(GL_TEXTURE_2D, d.ID);
+    //     shadow_renderer->setInt("diffuseTexture", 0);
+    //
+    //     glActiveTexture(GL_TEXTURE1);
+    //     glBindTexture(GL_TEXTURE_2D, depthMap);
+    //     shadow_renderer->setInt("shadowMap", 1);
+    //     scene_manager->render(shadow_renderer);
+    //
+    //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // }
 
 
 };

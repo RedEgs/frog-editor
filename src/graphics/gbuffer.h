@@ -8,9 +8,12 @@
 
 #include "quad.h"
 #include "shader.h"
+#include "shadowmap.h"
 #include "texture.h"
 #include "../core/scenemanager.h"
 
+
+class Shadowmap;
 
 class GBuffer {
 private:
@@ -28,10 +31,6 @@ private:
 
     void use_renderbuffer(int index) {
         glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-    }
-
-    void use_texture(int index) {
-        glBindTexture(GL_TEXTURE_2D, textures[index].ID);
     }
 public:
     unsigned int ID;
@@ -96,7 +95,7 @@ public:
         const GLenum attachments[3] = {
             GL_COLOR_ATTACHMENT0,
             GL_COLOR_ATTACHMENT1,
-            GL_COLOR_ATTACHMENT2
+            GL_COLOR_ATTACHMENT2,
         };
         glDrawBuffers(3, attachments);
 
@@ -137,9 +136,10 @@ public:
         gpass_shader->use();
         scene_manager->render(gpass_shader);
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void light_pass(Shader *lightpass_shader, SceneManager *scene_manager, Quad q) {
+    void light_pass(Shader *lightpass_shader, SceneManager *scene_manager, Quad q, Shadowmap *shadowmap,  glm::mat4 lightSpaceMatrix, glm::vec3 light_pos) {
         /*
          * Performs exclusively the light pass, must be used after the geometry pass.
          */
@@ -147,12 +147,26 @@ public:
         glDisable(GL_DEPTH_TEST);
 
         lightpass_shader->use();
+        lightpass_shader->setInt("gPosition", 0);
+        lightpass_shader->setInt("gNormal", 1);
+        lightpass_shader->setInt("gAlbedoSpec", 2);
+        lightpass_shader->setInt("gShadowmap", 3);
+
+        lightpass_shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        lightpass_shader->setVec3("lightPos", light_pos);
+
+
         glActiveTexture(GL_TEXTURE0);
-        use_texture(0);
+        glBindTexture(GL_TEXTURE_2D, textures[0].ID);;
+
         glActiveTexture(GL_TEXTURE1);
-        use_texture(1);
+        glBindTexture(GL_TEXTURE_2D, textures[1].ID);;
+
         glActiveTexture(GL_TEXTURE2);
-        use_texture(2);
+        glBindTexture(GL_TEXTURE_2D, textures[2].ID);;
+
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, shadowmap->depthMap);;
 
         scene_manager->render(lightpass_shader);
         q.draw();
@@ -182,18 +196,20 @@ public:
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    void draw(Shader *gpass_shader, Shader *lpass_shader, SceneManager *scene_manager, Quad *q) {
-        /*
-         * Performs the geometry and light pass then blits to the screen.
-         */
-        geometry_pass(gpass_shader, scene_manager);
-        light_pass(lpass_shader, scene_manager, *q);
-        blit();
-
-
-    }
+    // void draw(Shader *gpass_shader, Shader *lpass_shader, SceneManager *scene_manager, Quad *q) {
+    //     /*
+    //      * Performs the geometry and light pass then blits to the screen.
+    //      */
+    //     geometry_pass(gpass_shader, scene_manager);
+    //     light_pass(lpass_shader, scene_manager, *q);
+    //     blit();
+    //
+    //
+    // }
 
 
 
