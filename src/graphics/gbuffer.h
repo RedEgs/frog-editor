@@ -139,7 +139,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void light_pass(Shader *lightpass_shader, SceneManager *scene_manager, Quad q, Shadowmap *shadowmap,  glm::mat4 lightSpaceMatrix, glm::vec3 light_pos) {
+    void light_pass(Shader *lightpass_shader, SceneManager *scene_manager, Quad q, std::vector<Shadowmap> shadowmaps, std::vector<LightSource*> lights) {
         /*
          * Performs exclusively the light pass, must be used after the geometry pass.
          */
@@ -150,10 +150,23 @@ public:
         lightpass_shader->setInt("gPosition", 0);
         lightpass_shader->setInt("gNormal", 1);
         lightpass_shader->setInt("gAlbedoSpec", 2);
-        lightpass_shader->setInt("gShadowmap", 3);
 
-        lightpass_shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-        lightpass_shader->setVec3("lightPos", light_pos);
+        for (int i = 0; i < shadowmaps.size(); i++) {
+            std::string base = "gShadowmap[" + std::to_string(i) + "]";
+            lightpass_shader->setInt(base, 3+i);
+
+            glm::mat4 lightView = glm::lookAt(lights.at(i)->get_position(),
+            glm::vec3( 0.0f, 0.0f,  0.0f),
+            glm::vec3( 0.0f, 1.0f,  0.0f));
+            glm::mat4 lightSpaceMatrix = shadowmaps.at(i).light_projection * lightView;
+
+            std::string base2 = "lightSpaceMatrices[" + std::to_string(i) + "]";
+            lightpass_shader->setMat4(base2, lightSpaceMatrix);
+        }
+
+
+        // lightpass_shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        // lightpass_shader->setVec3("lightPos", light_pos);
 
 
         glActiveTexture(GL_TEXTURE0);
@@ -165,8 +178,11 @@ public:
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, textures[2].ID);;
 
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, shadowmap->depthMap);;
+        for (int i = 0; i < shadowmaps.size(); i++) {
+            glActiveTexture(GL_TEXTURE3 + i);
+            glBindTexture(GL_TEXTURE_2D, shadowmaps.at(i).depthMap);;
+        }
+
 
         scene_manager->render(lightpass_shader);
         q.draw();

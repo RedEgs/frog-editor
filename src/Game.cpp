@@ -62,10 +62,6 @@ SDL_AppResult Game::Init() {
     std::cout << "Made Gbuffer" << std::endl;
     glCheckError__();
 
-    shadowmap = std::make_unique<Shadowmap>(1024);
-    std::cout << "Made Shadowmap" << std::endl;
-    glCheckError__();
-
     shaders.emplace_back(shader_prog);
     shaders.emplace_back(cubemap_shader);
     shaders.emplace_back(billboard_shader);
@@ -81,10 +77,13 @@ SDL_AppResult Game::Init() {
     scene_manager.set_scene(scene);
     std::cout << "Set Scene" << std::endl;
 
-    lightpass_shader->use();
-    lightpass_shader->setInt("gPosition", 0);
-    lightpass_shader->setInt("gNormal", 1);
-    lightpass_shader->setInt("gAlbedoSpec", 2);
+    auto lights = scene_manager.collect_light_sources();
+    for (int i = 0; i < lights.size(); i++) {
+
+        Shadowmap s = Shadowmap(1024);
+        shadowmaps.emplace_back(s);
+        std::cout << "Set Shadowmap " << i << std::endl;
+    }
 
     std::cout << "Finished Init" << std::endl;
     return SDL_APP_CONTINUE;
@@ -218,22 +217,18 @@ void Game::render_scene() {
     uniform->set_object(32, scene_manager.get_camera()->view_matrix);
     uniform->set_object(96, scene_manager.get_camera()->project_matrix);
 
+    //
+    // glm::vec3 light_pos = editor->get_selected_object_position();//glm::vec3(-2.0f, 4.0f, -1.0f);
 
-    glm::vec3 light_pos = editor->get_selected_object_position();//glm::vec3(-2.0f, 4.0f, -1.0f);
-
-    shadowmap->first_pass(1280, 720, shadowdepth_shader, &scene_manager, light_pos);
-    //shadowmap->second_pass(shadowmap_shader, &scene_manager, light_pos, gbuffer.get());
+    std::vector<LightSource*> lights = scene_manager.collect_light_sources();
+    for (int i = 0; i < lights.size(); i++) {
+        shadowmaps.at(i).first_pass(1280, 720, shadowdepth_shader, &scene_manager, lights.at(i)->get_position());
+    }
 
     if (!forward_renderer) {
         //gbuffer->draw(geometrypass_shader, lightpass_shader, &scene_manager, &q);
         gbuffer->geometry_pass(geometrypass_shader, &scene_manager);
-
-        glm::mat4 lightView = glm::lookAt(light_pos,
-        glm::vec3( 0.0f, 0.0f,  0.0f),
-        glm::vec3( 0.0f, 1.0f,  0.0f));
-        glm::mat4 lightSpaceMatrix = shadowmap->light_projection * lightView;
-
-        gbuffer->light_pass(lightpass_shader, &scene_manager, q, shadowmap.get(), lightSpaceMatrix, light_pos);
+        gbuffer->light_pass(lightpass_shader, &scene_manager, q, shadowmaps, lights);
         gbuffer->blit();
     } else {
         frenderer_program->use();

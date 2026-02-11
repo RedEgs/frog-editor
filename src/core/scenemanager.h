@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "scene.h"
+#include "components/lightsource.h"
 
 
 class SceneManager {
@@ -90,6 +91,25 @@ public:
         if (scenes.empty()) return;
         Scene * s = scenes[current_scene_index].get();
         s->process_remove_queue();
+    }
+
+    std::vector<LightSource*> collect_light_sources() {
+        std::vector<LightSource*> lights;
+
+        if (!scenes.empty()) {
+            auto& scene = *scenes.at(current_scene_index);
+            for (auto& go_ptr : scene.game_objects) {
+                GameObject* go = go_ptr.get(); // get pointer to existing GameObject
+
+                for (auto& comp : go->components) {
+                    if (auto* light = dynamic_cast<LightSource*>(comp.get())) {
+                        lights.push_back(light);
+                    }
+                }
+            }
+        }
+
+        return lights;
     }
 
 private:

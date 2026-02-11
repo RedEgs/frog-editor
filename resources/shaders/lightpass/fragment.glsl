@@ -3,126 +3,137 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 
+const int NR_LIGHTS = 32;
+
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
-uniform sampler2D gShadowmap;
-
-uniform mat4 lightSpaceMatrix;
-uniform vec3 lightPos;
+uniform sampler2D gShadowmap[NR_LIGHTS];
+uniform mat4 lightSpaceMatrices[NR_LIGHTS];
 
 layout (std140) uniform Globals
 {
     float time; // 0
-    vec3 c_pos; // (Camera Position) 64
-    mat4 view; // 128
-    mat4 proj; // 144
+    vec3 c_pos; // 64
+    mat4 view;  // 128
+    mat4 proj;  // 144
 };
 
 struct PointLight {
     vec3 position;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
-
     float intensity;
-
-    bool enabled;
+    float range;
+    int cast_shadow;
+    int enabled;
 };
 
 struct DirectionalLight {
     vec3 direction;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
-
-    bool enabled;
+    float intensity;
+    int cast_shadow;
+    int enabled;
 };
 
-const int NR_LIGHTS = 32;
 uniform PointLight point_lights[NR_LIGHTS];
 uniform DirectionalLight directional_lights[NR_LIGHTS];
 
-vec3 calculate_point_light(PointLight light, vec3 diffuse_texel, vec3 specular_texel, vec3 FragPos, vec3 Normal) {
-    float light_distance = length(light.position - FragPos);
-    //float attenuation = 1.0 / (light.constant + light.linear * light_distance + light.quadratic * (light_distance * light_distance));
-    float attenuation = light.intensity / max(light_distance * light_distance, 0.01);
-
-    vec3 light_direction = normalize(light.position - FragPos);
-    vec3 view_direction = normalize(c_pos - FragPos);
-
-    vec3 normal = normalize(Normal);
-    vec3 halfway = normalize(light_direction + view_direction);
-    float specular = pow(max(dot(normal, halfway), 0.0), 16.0);
-
-
-    vec3 diffuse_light = (diffuse_texel * max(dot(normalize(Normal), light_direction), 0.0)) * light.diffuse;
-    vec3 ambient_light = light.ambient * diffuse_texel ;
-    vec3 specular_light = (specular_texel * pow(max(dot(normal, halfway), 0.0), 16.0)) * light.specular;
-
-    diffuse_light *= attenuation;
-    ambient_light *= attenuation;
-    specular_light *= attenuation;
-
-    return (ambient_light+diffuse_light+specular_light);
-}
-
-vec3 calculate_directional_light(DirectionalLight light, vec3 diffuse_texel, vec3 specular_texel, vec3 FragPos, vec3 Normal) {
-    vec3 view_direction = normalize(c_pos - FragPos);
-    vec3 light_direction = normalize(-light.direction);
-
-    vec3 normal = normalize(Normal);
-    float diffuse = max(dot(normal, light_direction), 0.0);
-
-    vec3 halfway = normalize(light_direction + view_direction);
-    float specular = pow(max(dot(normal, halfway), 0.0), 16.0f);
-
-    vec3 ambient_light = light.ambient * diffuse_texel;
-    vec3 diffuse_light = light.diffuse * diffuse * diffuse_texel;
-    vec3 specular_light = light.specular * specular * specular_texel;
-
-    return(ambient_light+diffuse_light+specular_light);
-
-}
-
-float ShadowCalculation(vec3 fragPos, vec3 normal)
+// -------------------------
+// Lighting calculations
+// -------------------------
+vec3 calculate_point_light(PointLight light, vec3 diffuse_texel, vec3 specular_texel, vec3 FragPos, vec3 Normal)
 {
-    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);
+    vec3 light_dir = light.position - FragPos;
+    float light_distance = length(light_dir);
 
+    if (light_distance > light.range)
+    return vec3(0.0);
+
+    light_dir = normalize(light_dir);
+
+    // Attenuation
+    float attenuation = light.intensity / (light_distance * light_distance + 1.0);
+    float edge = 1.0 - pow(light_distance / light.range, 4.0);
+    attenuation *= edge;
+
+    // View and halfway vectors
+    vec3 viewDir = normalize(c_pos - FragPos);
+    vec3 halfway = normalize(light_dir + viewDir);
+
+    // Normals
+    vec3 normal = normalize(Normal);
+
+    // Diffuse and specular
+    float diff = max(dot(normal, light_dir), 0.0);
+    float spec = pow(max(dot(normal, halfway), 0.0), 16.0);
+
+    vec3 ambient = diffuse_texel * light.ambient * attenuation;
+    vec3 diffuse = diffuse_texel * light.diffuse * diff * attenuation;
+    vec3 specular = specular_texel * light.specular * spec * attenuation;
+
+    return ambient + diffuse + specular;
+}
+
+vec3 calculate_directional_light(DirectionalLight light, vec3 diffuse_texel, vec3 specular_texel, vec3 FragPos, vec3 Normal)
+{
+    vec3 light_dir = normalize(-light.direction);
+    vec3 viewDir = normalize(c_pos - FragPos);
+    vec3 halfway = normalize(light_dir + viewDir);
+    vec3 normal = normalize(Normal);
+
+    float diff = max(dot(normal, light_dir), 0.0);
+    float spec = pow(max(dot(normal, halfway), 0.0), 16.0);
+
+    vec3 ambient = diffuse_texel * light.ambient;
+    vec3 diffuse = diffuse_texel * light.diffuse * diff;
+    vec3 specular = specular_texel * light.specular * spec;
+
+    return light.intensity * (ambient + diffuse + specular);
+}
+
+// -------------------------
+// Shadow calculation
+// -------------------------
+float ShadowCalculation(int index, vec3 fragPos, vec3 normal)
+{
+    vec4 fragPosLightSpace = lightSpaceMatrices[index] * vec4(fragPos, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
-    if(projCoords.z > 1.0)
+    if (projCoords.z > 1.0)
     return 0.0;
 
-    float closestDepth = texture(gShadowmap, projCoords.xy).r;
+    float closestDepth = texture(gShadowmap[index], projCoords.xy).r;
     float currentDepth = projCoords.z;
+    float bias = max(0.005 * (1.0 - dot(normal, normalize(vec3(lightSpaceMatrices[index][3]) - fragPos))), 0.005);
 
-    float bias = max(0.05 * (1.0 - dot(normal, normalize(lightPos - fragPos))), 0.005);
-
-    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    return (currentDepth - bias > closestDepth) ? 1.0 : 0.0;
 }
 
-
+// -------------------------
+// Main
+// -------------------------
 void main()
 {
-    // retrieve data from gbuffer
+    // Retrieve G-buffer data
     vec3 FragPos = texture(gPosition, TexCoords).rgb;
     vec3 Normal = normalize(texture(gNormal, TexCoords).rgb);
     vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
     float Specular = texture(gAlbedoSpec, TexCoords).a;
 
-    float shadow = ShadowCalculation(FragPos, Normal);
+    vec3 lighting = vec3(0.0);
 
-    // then calculate lighting as usual
-    vec3 lighting  = Diffuse; // hard-coded ambient component
-    vec3 viewDir  = normalize(c_pos - FragPos);
-
+    // -------------------------
+    // Point lights
+    // -------------------------
     for (int i = 0; i < NR_LIGHTS; ++i)
     {
-        if (point_lights[i].enabled)
+        if (point_lights[i].enabled != 0)
         {
             lighting += calculate_point_light(
             point_lights[i],
@@ -134,23 +145,28 @@ void main()
         }
     }
 
+    // -------------------------
+    // Directional lights
+    // -------------------------
     for (int i = 0; i < NR_LIGHTS; ++i)
     {
-        if (directional_lights[i].enabled)
-        {
-            lighting += calculate_directional_light(
-                directional_lights[i],
-                Diffuse,
-                vec3(Specular),
-                FragPos,
-                Normal
-            );
-        }
+        if (directional_lights[i].enabled == 0)
+        continue;
+
+        vec3 lightContribution = calculate_directional_light(
+        directional_lights[i],
+        Diffuse,
+        vec3(Specular),
+        FragPos,
+        Normal
+        );
+
+        float shadow = 0.0;
+        if (directional_lights[i].cast_shadow != 0)
+        shadow = ShadowCalculation(i, FragPos, Normal);
+
+        lighting += (1.0 - shadow) * lightContribution;
     }
 
-    lighting *= (1.0 - shadow);
     FragColor = vec4(lighting, 1.0);
-//    float gamma = 2.2;
-//    FragColor = vec4(pow(lighting.rgb, vec3(1.0/gamma)), 1.0);
-
 }

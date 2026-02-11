@@ -61,6 +61,7 @@ public:
             c->on_render(shader, camera);
     }
 
+
     std::string get_instance_name() {
         return instance_name;
     }

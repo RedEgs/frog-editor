@@ -18,51 +18,69 @@ struct LightType {
 
 struct DirectionalLightType : LightType {
     glm::vec3 direction{};
+
     glm::vec3 ambient{};
     glm::vec3 diffuse{};
     glm::vec3 specular{};
 
-    DirectionalLightType(glm::vec3 direction, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular): direction(direction), ambient(ambient), diffuse(diffuse), specular(specular) {}
+    float intensity;
+    bool cast_shadow;
+
+    DirectionalLightType(glm::vec3 direction, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float intensity, bool cast_shadow): direction(direction), ambient(ambient), diffuse(diffuse), specular(specular), intensity(intensity), cast_shadow(cast_shadow){}
     static std::unique_ptr<LightType> MakeSun() {
         return std::make_unique<DirectionalLightType>(
             glm::vec3(-0.2f, -1.0f, -0.3f),
             glm::vec3(1.0f),
             glm::vec3(0.4f),
-            glm::vec3(0.5f)
+            glm::vec3(0.5f),
+            1.0,
+            false
         );
     }
 };
 
 struct PointLightType : LightType {
-    float intensity;
     glm::vec3 position{};
     glm::vec3 ambient{};
     glm::vec3 diffuse{};
     glm::vec3 specular{};
 
-    PointLightType(float intensity, glm::vec3 position, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular):
-        intensity(intensity), position(position), ambient(ambient), diffuse(diffuse), specular(specular) {}
+    float intensity;
+    float range;
+    bool cast_shadow;
+
+    PointLightType(glm::vec3 position, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float intensity, float range, bool cast_shadow):
+        position(position), ambient(ambient), diffuse(diffuse), specular(specular), intensity(intensity), range(range), cast_shadow(cast_shadow) {}
+
     static std::unique_ptr<LightType> Regular() {
         return std::make_unique<PointLightType>(
-            1.0,
             glm::vec3(0, 0, 0),
             glm::vec3(1.0f),
             glm::vec3(0.4f),
-            glm::vec3(0.5f)
+            glm::vec3(0.5f),
+            1.0,
+            3.0,
+            false
         );
     }
 };
 
 class LightSource : public Component {
 private:
-    Texture icon_tex = Texture("../resources/icons/light-source.png", "diffuse");
-    Billboard icon = Billboard(icon_tex);
+    Texture dir_icon = Texture("../resources/icons/directional-light.png", "diffuse");
+    Texture point_icon = Texture("../resources/icons/point-light.png", "diffuse");
+
+    Billboard icon = Billboard(point_icon);
     bool render_icon = true;
 public:
     std::unique_ptr<LightType> light_type;
 
-    LightSource(std::unique_ptr<LightType> lt) : light_type(std::move(lt)) {}
-    LightSource() {
+    LightSource(std::unique_ptr<LightType> lt): light_type(std::move(lt))
+    {
+    }
+
+    LightSource()
+    {
         light_type = DirectionalLightType::MakeSun();
     }
 
@@ -73,7 +91,7 @@ public:
 
         if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
             // point light UI
-            ImGui::SliderFloat("Intensity", &p->intensity, 0, 5);
+
             if (t == NULL) {
                 static bool shouldRenderGizmo = true;
                 ImGui::Checkbox("Render Gizmo", &shouldRenderGizmo);
@@ -97,18 +115,28 @@ public:
                     glm::vec3 deltaPos = glm::vec3(delta_matrix[3]);
                     p->position+=deltaPos;
 
-
-
                 }
 
+                ImGui::Separator();
                 ImGui::InputFloat3("Position", glm::value_ptr(p->position), "%.2f");
             }
+
+            ImGui::Separator();
 
             ImGui::ColorEdit3("Ambient", glm::value_ptr(p->ambient));
             ImGui::ColorEdit3("Diffuse", glm::value_ptr(p->diffuse));
             ImGui::ColorEdit3("Specular", glm::value_ptr(p->specular));
+
+            ImGui::Separator();
+
+            ImGui::SliderFloat("Intensity", &p->intensity, 0, 100);
+            ImGui::SliderFloat("Range", &p->range, 0, 20);
+            ImGui::Checkbox("Cast Shadow", &p->cast_shadow);
+
+
         }
         else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
+
             // directional light UI
             if (t == NULL) {
                 static bool shouldRenderGizmo = true;
@@ -139,12 +167,20 @@ public:
 
                 }
 
+                ImGui::Separator();
                 ImGui::InputFloat3("Direction", glm::value_ptr(d->direction), "%.2f");
             }
+
+            ImGui::Separator();
 
             ImGui::ColorEdit3("Ambient", glm::value_ptr(d->ambient));
             ImGui::ColorEdit3("Diffuse", glm::value_ptr(d->diffuse));
             ImGui::ColorEdit3("Specular", glm::value_ptr(d->specular));
+
+            ImGui::Separator();
+
+            ImGui::SliderFloat("Intensity", &d->intensity, 0, 100);
+            ImGui::Checkbox("Cast Shadow", &d->cast_shadow);
         }
     }
 
@@ -154,14 +190,23 @@ public:
         if (render_icon) {
             if (shader->name == "billboard") {
                 glm::vec3 position;
+                icon.size = .5f;
+
                 if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
                     position = p->position;
+                    icon.position = position;
+
                 }
                 else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
                     position = d->direction;
+
+                    glm::mat4 m = glm::mat4(1.0f);
+                    m = glm::translate(m, d->direction);
+                    m = inverse(m);
+
+                    icon.position = glm::vec3(m[3]);
                 }
-                icon.size = .5f;
-                icon.position = position;
+
                 icon.draw(shader);
             }
         }
@@ -176,13 +221,15 @@ public:
             int i = shader->point_light_count++;
             std::string base = "point_lights[" + std::to_string(i) + "]";
 
-            shader->setFloat(base + ".intensity", p->intensity);
-
             shader->setVec3(base + ".position", p->position);
             shader->setVec3(base + ".ambient", p->ambient);
             shader->setVec3(base + ".diffuse", p->diffuse);
             shader->setVec3(base + ".specular", p->specular);
 
+            shader->setFloat(base + ".intensity", p->intensity);
+            shader->setFloat(base + ".range", p->range);
+
+            shader->setBool(base + ".cast_shadow", p->cast_shadow);
             shader->setBool(base + ".enabled", true);
         }
         else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
@@ -202,10 +249,27 @@ public:
             shader->setVec3(base + ".diffuse", d->diffuse);
             shader->setVec3(base + ".specular", d->specular);
 
+            shader->setFloat(base + ".intensity", d->intensity);
+
+            shader->setBool(base + ".cast_shadow", d->cast_shadow);
             shader->setBool(base + ".enabled", true);
         }
     }
 
+    glm::vec3 get_position() {
+        auto* t = owner->get_component<Transform>();
+
+        if (t != NULL) {
+            return t->position;
+        }
+
+        if (auto* p = dynamic_cast<PointLightType*>(light_type.get())) {
+             return p->position;
+        } else if (auto* d = dynamic_cast<DirectionalLightType*>(light_type.get())) {
+            return d->direction;
+        }
+
+    }
     static const char* get_static_class_name() { return "Light Source"; };
     const char* get_class_name() override { return "LightSourceComponent"; }
 

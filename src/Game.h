@@ -36,7 +36,7 @@ private:
     std::unique_ptr<Cubemap> cubemap_;
     std::unique_ptr<UniformBufferObject> ubo;
     std::unique_ptr<GBuffer> gbuffer;
-    std::unique_ptr<Shadowmap> shadowmap;
+    std::vector<Shadowmap> shadowmaps;
     bool forward_renderer = false;
 
     float delta_time = 0.0f;

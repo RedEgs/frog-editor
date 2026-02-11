@@ -17,8 +17,8 @@ public:
         std::shared_ptr<Model> m(new Model("models/sphere.obj"));
 
         //game_objects.push_back(std::make_unique<ModelObject>(m, glm::vec3(0.0), glm::vec3(1.0)));
-        //game_objects.push_back(std::make_unique<LightSourceObject>(DirectionalLightType::MakeSun()));
-        game_objects.push_back(std::make_unique<LightSourceObject>(PointLightType::Regular()));
+        game_objects.push_back(std::make_unique<LightSourceObject>(DirectionalLightType::MakeSun()));
+        //game_objects.push_back(std::make_unique<LightSourceObject>(PointLightType::Regular()));
         game_objects.push_back(std::make_unique<PrimitiveObject>(CUBE, glm::vec3(-1.0,0.0,0.0f), glm::vec3(1.0f)));
         game_objects.push_back(std::make_unique<PrimitiveObject>(CUBE, glm::vec3(1.0,0.0,0.0f), glm::vec3(1.0f)));
 

@@ -8,7 +8,6 @@ layout (location = 2) out vec4 gAlbedoSpec;
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec4 FragPosLightSpace;
 
 layout (std140) uniform Globals
 {
