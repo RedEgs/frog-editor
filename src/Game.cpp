@@ -222,7 +222,21 @@ void Game::render_scene() {
 
     std::vector<LightSource*> lights = scene_manager.collect_light_sources();
     for (int i = 0; i < lights.size(); i++) {
-        shadowmaps.at(i).first_pass(1280, 720, shadowdepth_shader, &scene_manager, lights.at(i)->get_position());
+        try {
+            LightType* lt = lights.at(i)->light_type.get();
+            if (auto* d = dynamic_cast<DirectionalLightType*>(lt)) {
+                if (!d->cast_shadow) continue;
+            } else if (auto* p = dynamic_cast<PointLightType*>(lt)) {
+                if (!p->cast_shadow) continue;
+            }
+            shadowmaps.at(i).first_pass(1280, 720, shadowdepth_shader, &scene_manager, lights.at(i)->get_position());
+
+        } catch(std::out_of_range e) {
+            std::cout << "Need to add another shadow map" << std::endl;
+            Shadowmap s = Shadowmap(1024);
+            shadowmaps.emplace_back(s);
+        }
+
     }
 
     if (!forward_renderer) {
