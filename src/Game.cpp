@@ -17,7 +17,6 @@
 #include "imgui_impl_opengl3.h"
 
 #include "core/camera.h"
-#include "core/scene.h"
 #include "game/test_scene.h"
 #include "graphics/model.h"
 #include "imgui_stdlib.h"
@@ -41,6 +40,7 @@ SDL_AppResult Game::Init() {
 
 
     scene_manager = SceneManager();
+    renderer = std::make_unique<Renderer>();
     editor = std::make_unique<Editor>(&scene_manager);
 
     ubo = std::make_unique<UniformBufferObject>(160, 0);
@@ -77,7 +77,7 @@ SDL_AppResult Game::Init() {
     scene_manager.set_scene(scene);
     std::cout << "Set Scene" << std::endl;
 
-    auto lights = scene_manager.collect_light_sources();
+    auto lights = renderer->collect_light_source_components(&scene_manager);
     for (int i = 0; i < lights.size(); i++) {
 
         Shadowmap s = Shadowmap(1024);
@@ -217,10 +217,7 @@ void Game::render_scene() {
     uniform->set_object(32, scene_manager.get_camera()->view_matrix);
     uniform->set_object(96, scene_manager.get_camera()->project_matrix);
 
-    //
-    // glm::vec3 light_pos = editor->get_selected_object_position();//glm::vec3(-2.0f, 4.0f, -1.0f);
-
-    std::vector<LightSource*> lights = scene_manager.collect_light_sources();
+    std::vector<LightSource*> lights = renderer->collect_light_source_components(&scene_manager);
     for (int i = 0; i < lights.size(); i++) {
         try {
             LightType* lt = lights.at(i)->light_type.get();
@@ -241,15 +238,12 @@ void Game::render_scene() {
 
     if (!forward_renderer) {
         //gbuffer->draw(geometrypass_shader, lightpass_shader, &scene_manager, &q);
-        gbuffer->geometry_pass(geometrypass_shader, &scene_manager);
-        gbuffer->light_pass(lightpass_shader, &scene_manager, q, shadowmaps, lights);
+        gbuffer->geometry_pass(geometrypass_shader, &scene_manager, renderer.get());
+        gbuffer->light_pass(lightpass_shader, &scene_manager, q, shadowmaps, lights, renderer.get());
         gbuffer->blit();
     } else {
         frenderer_program->use();
-        scene_manager.render(frenderer_program);
-
-        frenderer_program->dir_light_count = 0;
-        frenderer_program->point_light_count = 0;
+        renderer->render_scene(&scene_manager, frenderer_program);
     }
 
 
@@ -264,10 +258,10 @@ void Game::render_scene() {
 
 
     billboard_shader->use();
-    scene_manager.render(billboard_shader);
+    renderer->render_scene(&scene_manager, billboard_shader);
 
     cubemap_shader->use();
-    scene_manager.render(cubemap_shader);
+    renderer->render_scene(&scene_manager, cubemap_shader);
 
     ImGuizmo::Enable(true);
 

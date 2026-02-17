@@ -1,15 +1,9 @@
 //
 // Created by Charlie on 13/01/2026.
 //
-
+#pragma once
 #ifndef SDL3_FIRST_MODELRENDERER_H
 #define SDL3_FIRST_MODELRENDERER_H
-#include "transform.h"
-#include "../component.h"
-#include "../../graphics/model.h"
-#include "../utility/files.h"
-
-class Model;
 
 class ModelRenderer : public Component {
 private:
@@ -29,12 +23,12 @@ public:
         this->model = m;
     }
 
-    void on_render(Shader *shader, Camera camera) override {
+    void on_render(Shader *shader, Camera camera, Renderer *renderer) override {
         if (shader->name != "forward-renderer" && shader->name != "geometry-pass" && shader->name != "shadow-pass" && shader->name != "shadow-renderer")
             return;
 
         auto* t = owner->get_component<Transform>();
-        if (t == NULL) {
+        if (t == nullptr) {
             shader->setMat4("model", glm::mat4(1.0));
         } else {
             shader->setMat4("model", t->get_matrix());
@@ -45,7 +39,7 @@ public:
 
     void properties_editor_imgui(Scene *scene) override {
         std::string x = "Model Path: ";
-        x.append(model.get()->path);
+        x.append(model->path);
         ImGui::Text(x.c_str());
     };
 

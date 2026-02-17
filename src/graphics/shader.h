@@ -19,9 +19,6 @@ public:
     unsigned int ID;
     unsigned int UBB; // Uniform Block Binding;
 
-    int point_light_count = 0;
-    int dir_light_count = 0;
-
     Shader(const char* vertex_path, const char* fragment_path, const char* name) {
         this->name = name;
 

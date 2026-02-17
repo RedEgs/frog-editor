@@ -1,16 +1,69 @@
 //
 // Created by Charlie on 12/01/2026.
 //
+#pragma once
 
 #ifndef SDL3_FIRST_SCENEMANAGER_H
 #define SDL3_FIRST_SCENEMANAGER_H
 #include <memory>
 
-#include "scene.h"
-#include "components/lightsource.h"
+#include "gameobject.h"
 
+
+class Renderer;
+class Shader;
+class GameObject;
+
+class Scene {
+private:
+    std::vector<int> remove_queue;
+public:
+    static SDL_Window* window;
+
+    virtual ~Scene() = default;
+
+    Camera main_camera = Camera(glm::vec3(0, 0, 0), glm::vec3(0, 0, -2));
+    std::vector<std::unique_ptr<GameObject>> game_objects;
+
+    // virtual void on_enter();
+    // virtual void on_exit();
+
+    virtual void events(SDL_Event *event) {};
+    virtual void imgui() {};
+
+    virtual void update(float delta_time) {
+        main_camera.update(delta_time);
+        for (int i = 0; i < game_objects.size(); i++) {
+            game_objects[i].get()->update(delta_time);
+        }
+    };
+    virtual void render(Shader* shader, Renderer *renderer) {
+        for (int i = 0; i < game_objects.size(); i++) {
+            Camera c = main_camera;
+            game_objects[i].get()->render(shader, c, renderer);
+        }
+    };
+
+    void remove_game_object(int index) {
+        remove_queue.push_back(index);
+        //
+    }
+
+    void process_remove_queue() {
+        if (remove_queue.size() > 0) {
+            for (int i = 0; i < remove_queue.size(); i++) {
+                game_objects.erase(game_objects.begin() + remove_queue.at(i));
+            }
+        }
+        remove_queue.clear();
+    }
+};
 
 class SceneManager {
+private:
+    unsigned int current_scene_index;
+    std::vector<std::unique_ptr<Scene>> scenes;
+
 public:
     SceneManager(): current_scene_index(0) {};
 
@@ -33,14 +86,6 @@ public:
     void imgui() const {
         if (!scenes.empty()) {
             scenes[current_scene_index]->imgui();
-        } else {
-            std::cerr << "No scenes in the scene manager" << std::endl;
-        }
-    };
-
-    void render(Shader* shader) const {
-        if (!scenes.empty()) {
-            scenes[current_scene_index]->render(shader);
         } else {
             std::cerr << "No scenes in the scene manager" << std::endl;
         }
@@ -92,29 +137,6 @@ public:
         Scene * s = scenes[current_scene_index].get();
         s->process_remove_queue();
     }
-
-    std::vector<LightSource*> collect_light_sources() {
-        std::vector<LightSource*> lights;
-
-        if (!scenes.empty()) {
-            auto& scene = *scenes.at(current_scene_index);
-            for (auto& go_ptr : scene.game_objects) {
-                GameObject* go = go_ptr.get(); // get pointer to existing GameObject
-
-                for (auto& comp : go->components) {
-                    if (auto* light = dynamic_cast<LightSource*>(comp.get())) {
-                        lights.push_back(light);
-                    }
-                }
-            }
-        }
-
-        return lights;
-    }
-
-private:
-    unsigned int current_scene_index;
-    std::vector<std::unique_ptr<Scene>> scenes;
 };
 
 

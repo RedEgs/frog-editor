@@ -279,7 +279,7 @@ public:
 
     }
 
-    void on_render(Shader *shader, Camera camera) override {
+    void on_render(Shader *shader, Camera camera, Renderer *renderer) override {
         if (shader->name != "forward-renderer" && shader->name != "geometry-pass" && shader->name != "shadow-pass" && shader->name != "shadow-renderer")
             return;
 

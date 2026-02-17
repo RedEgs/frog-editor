@@ -15,7 +15,6 @@ add_executable(sdl3_first src/main.cpp
         src/graphics/vertex.h
         src/graphics/mesh.h
         src/graphics/model.h
-        src/core/scene.h
         src/core/scenemanager.h
         src/game/test_scene.h
         src/core/GameObject.h
@@ -42,6 +41,8 @@ add_executable(sdl3_first src/main.cpp
         src/graphics/gbuffer.h
         src/graphics/shadowmap.h
         src/core/imgui_editor.h
+        src/core/renderer.h
+        src/core/renderer.cpp
 )
 
 find_package(SDL3 CONFIG REQUIRED)

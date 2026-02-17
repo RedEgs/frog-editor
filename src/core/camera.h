@@ -2,6 +2,8 @@
 // Created by Charlie on 07/01/2026.
 //
 
+#pragma once
+
 #ifndef SDL3_FIRST_CAMERA_H
 #define SDL3_FIRST_CAMERA_H
 #include <iostream>

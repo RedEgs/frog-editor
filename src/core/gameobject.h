@@ -1,7 +1,7 @@
 //
 // Created by Charlie on 13/01/2026.
 //
-
+#pragma once
 #ifndef SDL3_FIRST_GAMEOBJECT_H
 #define SDL3_FIRST_GAMEOBJECT_H
 #include <cstdint>
@@ -11,10 +11,6 @@
 
 #include "component.h"
 
-
-
-class Shader;
-class Component;
 
 class GameObject {
 protected:
@@ -56,9 +52,9 @@ public:
             c->on_update(dt);
     }
 
-    void render(Shader *shader, Camera camera) const {
+    void render(Shader *shader, Camera camera, Renderer *renderer) const {
         for (auto& c : components)
-            c->on_render(shader, camera);
+            c->on_render(shader, camera, renderer);
     }
 
 

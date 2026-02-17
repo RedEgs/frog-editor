@@ -10,10 +10,9 @@
 #include "shader.h"
 #include "shadowmap.h"
 #include "texture.h"
+#include "core/components/lightsource.h"
 #include "../core/scenemanager.h"
 
-
-class Shadowmap;
 
 class GBuffer {
 private:
@@ -125,7 +124,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void geometry_pass(Shader *gpass_shader, SceneManager *scene_manager) {
+    void geometry_pass(Shader *gpass_shader, SceneManager *scene_manager, Renderer *renderer) {
         /*
          * Performs exclusively the geometry pass, must be used before the light pass.
          */
@@ -134,12 +133,12 @@ public:
         clear();
 
         gpass_shader->use();
-        scene_manager->render(gpass_shader);
+        renderer->render_scene(scene_manager, gpass_shader);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void light_pass(Shader *lightpass_shader, SceneManager *scene_manager, Quad q, std::vector<Shadowmap> shadowmaps, std::vector<LightSource*> lights) {
+    void light_pass(Shader *lightpass_shader, SceneManager *scene_manager, Quad q, std::vector<Shadowmap> shadowmaps, std::vector<LightSource*> lights, Renderer *renderer) {
         /*
          * Performs exclusively the light pass, must be used after the geometry pass.
          */
@@ -184,11 +183,9 @@ public:
         }
 
 
-        scene_manager->render(lightpass_shader);
+        renderer->render_scene(scene_manager, lightpass_shader);
         q.draw();
 
-        lightpass_shader->dir_light_count = 0;
-        lightpass_shader->point_light_count = 0;
     }
 
     void blit() {

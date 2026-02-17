@@ -38,7 +38,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void first_pass(unsigned int width, unsigned int height, Shader *depth_shader, SceneManager *scene_manager, glm::vec3 light_pos) {
+    void first_pass(unsigned int width, unsigned int height, Shader *depth_shader, SceneManager *scene_manager, glm::vec3 light_pos, Renderer *renderer) {
         glCullFace(GL_FRONT);
         depth_shader->use();
 
@@ -52,7 +52,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glClear(GL_DEPTH_BUFFER_BIT);
 
-        scene_manager->render(depth_shader);
+        renderer->render_scene(scene_manager, depth_shader);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glCullFace(GL_BACK);

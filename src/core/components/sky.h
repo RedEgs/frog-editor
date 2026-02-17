@@ -53,7 +53,7 @@ public:
         ImGui::Button("Hello!");
     };
 
-    void on_render(Shader *shader, Camera camera) override {
+    void on_render(Shader *shader, Camera camera, Renderer *renderer) override {
         if (shader->name == "skybox") {
             cubemap->draw(camera.view_matrix, shader);
         }

@@ -5,7 +5,7 @@
 
 #include "core/camera.h"
 #include "core/imgui_editor.h"
-#include "core/scene.h"
+#include "core/renderer.h"
 #include "core/scenemanager.h"
 #include "graphics/cubemap.h"
 #include "graphics/framebuffer.h"
@@ -37,6 +37,7 @@ private:
     std::unique_ptr<UniformBufferObject> ubo;
     std::unique_ptr<GBuffer> gbuffer;
     std::vector<Shadowmap> shadowmaps;
+    std::unique_ptr<Renderer> renderer;
     bool forward_renderer = false;
 
     float delta_time = 0.0f;

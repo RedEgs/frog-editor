@@ -108,7 +108,10 @@ public:
 
             if (ImGui::BeginPopup("add_component_list")) {
                 ImGui::Text("List:");
-                static std::vector<std::string> component_names = ComponentRegistry::instance().get_names();
+
+                std::vector<std::string> component_names = ComponentRegistry::instance().get_names();
+
+
                 for (int i = 0; i < component_names.size(); i++) {
                     if (ImGui::Button(component_names[i].c_str())) {
                         auto* obj = ComponentRegistry::instance().get_component_constructor(i);

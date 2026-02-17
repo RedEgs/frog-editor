@@ -4,7 +4,7 @@
 
 #ifndef SDL3_FIRST_TEST_SCENE_H
 #define SDL3_FIRST_TEST_SCENE_H
-#include "../core/scene.h"
+
 #include "../core/components/lightsource.h"
 #include "../core/objects/lightsourceobject.h"
 #include "../core/objects/modelobject.h"
