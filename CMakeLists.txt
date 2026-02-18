@@ -43,6 +43,7 @@ add_executable(sdl3_first src/main.cpp
         src/core/imgui_editor.h
         src/core/renderer.h
         src/core/renderer.cpp
+        src/core/scene.h
 )
 
 find_package(SDL3 CONFIG REQUIRED)

@@ -5,9 +5,9 @@
 #define SDL3_FIRST_RENDERER_H
 #include <vector>
 
+class SceneManager;
 class Shader;
 class Model;
-class SceneManager;
 class LightSource;
 class Primitive;
 class Mesh;
@@ -27,9 +27,8 @@ public:
         in_pass = true;
     }
 
-    std::vector<LightSource*> collect_light_source_components(SceneManager *scene_manager);
-    std::vector<Primitive*> collect_primitive_components(SceneManager *scene_manager);
-    std::vector<Mesh*> collect_mesh_components(SceneManager *scene_manager);
+    // std::vector<Primitive*> collect_primitive_components(SceneManager *scene_manager);
+    // std::vector<Mesh*> collect_mesh_components(SceneManager *scene_manager);
 
     void submit_light(LightType* light_type) {
         if (in_pass) {

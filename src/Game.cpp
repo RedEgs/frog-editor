@@ -38,7 +38,6 @@ Game::Game(int argc, char ** argv) : m_window(nullptr, &SDL_DestroyWindow), gl_c
 SDL_AppResult Game::Init() {
     setup_window();
 
-
     scene_manager = SceneManager();
     renderer = std::make_unique<Renderer>();
     editor = std::make_unique<Editor>(&scene_manager);
@@ -77,7 +76,7 @@ SDL_AppResult Game::Init() {
     scene_manager.set_scene(scene);
     std::cout << "Set Scene" << std::endl;
 
-    auto lights = renderer->collect_light_source_components(&scene_manager);
+    auto lights = scene_manager.collect_light_source_components();
     for (int i = 0; i < lights.size(); i++) {
 
         Shadowmap s = Shadowmap(1024);
@@ -217,7 +216,7 @@ void Game::render_scene() {
     uniform->set_object(32, scene_manager.get_camera()->view_matrix);
     uniform->set_object(96, scene_manager.get_camera()->project_matrix);
 
-    std::vector<LightSource*> lights = renderer->collect_light_source_components(&scene_manager);
+    std::vector<LightSource*> lights = scene_manager.collect_light_source_components();
     for (int i = 0; i < lights.size(); i++) {
         try {
             LightType* lt = lights.at(i)->light_type.get();
@@ -226,7 +225,7 @@ void Game::render_scene() {
             } else if (auto* p = dynamic_cast<PointLightType*>(lt)) {
                 if (!p->cast_shadow) continue;
             }
-            shadowmaps.at(i).first_pass(1280, 720, shadowdepth_shader, &scene_manager, lights.at(i)->get_position());
+            shadowmaps.at(i).first_pass(1280, 720, shadowdepth_shader, &scene_manager, lights.at(i)->get_position(), renderer.get());
 
         } catch(std::out_of_range e) {
             std::cout << "Need to add another shadow map" << std::endl;
@@ -273,8 +272,6 @@ SDL_AppResult Game::OnRender() {
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_BLEND);
-
-
 
     glClearColor(0.00f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

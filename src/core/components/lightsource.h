@@ -4,17 +4,12 @@
 #pragma once
 #ifndef SDL3_FIRST_LIGHTSOURCE_H
 #define SDL3_FIRST_LIGHTSOURCE_H
+
 #include <imgui.h>
-#include "imgui_stdlib.h"
-#include <glm/vec3.hpp>
 
 #include "transform.h"
-#include "../component.h"
 #include "../../graphics/shader.h"
 #include "../../graphics/billboard.h"
-
-
-
 
 enum LightTypeEnum {
     DIRECTIONAL = 0,
@@ -280,7 +275,7 @@ public:
             }
         }
 
-        renderer->submit_light(light_type.get());
+
     }
 
     glm::vec3 get_position() {

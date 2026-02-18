@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <thread>
 #include <SDL3/SDL_dialog.h>
 #include <miniz/miniz.h>
 

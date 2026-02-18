@@ -5,6 +5,8 @@
 #ifndef SDL3_FIRST_MODELRENDERER_H
 #define SDL3_FIRST_MODELRENDERER_H
 
+#include "utility/files.h"
+
 class ModelRenderer : public Component {
 private:
     SDL_DialogFileFilter default_fdfilter {

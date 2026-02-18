@@ -8,10 +8,14 @@
 
 #include <functional>
 
-class Renderer;
+#include "camera.h"
+
+
+
 class Scene;
 class Shader;
 class GameObject;
+class Renderer;
 
 class Component {
 public:

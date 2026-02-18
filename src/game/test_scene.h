@@ -14,7 +14,7 @@
 class Test_Scene : public Scene {
 public:
     explicit Test_Scene() {
-        std::shared_ptr<Model> m(new Model("models/sphere.obj"));
+        //std::shared_ptr<Model> m(new Model("models/sphere.obj"));
 
         //game_objects.push_back(std::make_unique<ModelObject>(m, glm::vec3(0.0), glm::vec3(1.0)));
         game_objects.push_back(std::make_unique<LightSourceObject>(DirectionalLightType::MakeSun()));
